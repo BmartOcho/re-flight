@@ -1,0 +1,187 @@
+{
+  "slug": "alaska-1282",
+  "callsign": "ALASKA 1282",
+  "title": "The Door-Plug Flight, As Actually Flown",
+  "blurb": "Nineteen minutes over Portland at night — a 737 MAX 9 loses its door plug at 16,000 ft and returns. All 177 aboard survive.",
+  "aircraft": {
+    "icao": "B39M",
+    "model": "Boeing 737 MAX 9",
+    "registration": "N704AL",
+    "operator": "Alaska Airlines",
+    "wingspanM": 35.9
+  },
+  "dateISO": "2024-01-05",
+  "dateLabel": "Jan 5 2024",
+  "theme": "night",
+  "timezone": {
+    "label": "PST",
+    "offsetHours": -8
+  },
+  "origin": {
+    "lat": 45.5887,
+    "lon": -122.5975
+  },
+  "datum": 0,
+  "altitudeType": "baro",
+  "dataSource": "adsb",
+  "trackAttribution": "ADS-B Exchange",
+  "reference": null,
+  "peaks": [],
+  "events": [
+    {
+      "t": 4035,
+      "tag": "01:07:20 Z",
+      "msg": "AIRBORNE — RWY 28L, CLIMBING INTO NIGHT",
+      "dur": 14,
+      "tone": "calm"
+    },
+    {
+      "t": 4413,
+      "tag": "01:13:33 Z · FL161",
+      "msg": "DOOR PLUG SEPARATES — RAPID DEPRESSURIZATION",
+      "dur": 26,
+      "tone": "alert"
+    },
+    {
+      "t": 4520,
+      "tag": "MAYDAY DECLARED",
+      "msg": "EMERGENCY RETURN TO PORTLAND",
+      "dur": 18,
+      "tone": "alert"
+    },
+    {
+      "t": 5145,
+      "tag": "01:26:45 Z",
+      "msg": "LANDED SAFELY — ALL 177 ABOARD SURVIVE",
+      "dur": 20,
+      "tone": "calm"
+    }
+  ],
+  "phases": [
+    {
+      "untilT": 4035,
+      "label": "DEPARTURE · RWY 28L"
+    },
+    {
+      "untilT": 4413,
+      "label": "CLIMB · INTO THE NIGHT"
+    },
+    {
+      "untilT": 4520,
+      "label": "DEPRESSURIZATION · FL160"
+    },
+    {
+      "untilT": 5145,
+      "label": "EMERGENCY RETURN"
+    },
+    {
+      "untilT": null,
+      "label": "ON THE GROUND · PDX"
+    }
+  ],
+  "scaleMultipliers": [
+    8,
+    3,
+    1
+  ],
+  "camera": "chase",
+  "decorations": {
+    "rivers": [
+      [
+        [
+          45.63,
+          -122.95
+        ],
+        [
+          45.61,
+          -122.78
+        ],
+        [
+          45.605,
+          -122.65
+        ],
+        [
+          45.58,
+          -122.4
+        ],
+        [
+          45.56,
+          -122.1
+        ],
+        [
+          45.6,
+          -121.9
+        ]
+      ],
+      [
+        [
+          45.35,
+          -122.66
+        ],
+        [
+          45.47,
+          -122.67
+        ],
+        [
+          45.52,
+          -122.67
+        ],
+        [
+          45.58,
+          -122.72
+        ],
+        [
+          45.65,
+          -122.76
+        ]
+      ]
+    ],
+    "lights": [
+      {
+        "lat": 45.515,
+        "lon": -122.678,
+        "radius": 0.09,
+        "count": 700
+      },
+      {
+        "lat": 45.63,
+        "lon": -122.66,
+        "radius": 0.07,
+        "count": 380
+      },
+      {
+        "lat": 45.52,
+        "lon": -122.55,
+        "radius": 0.07,
+        "count": 320
+      }
+    ],
+    "runways": [
+      {
+        "lat": 45.5887,
+        "lon": -122.5975,
+        "bearing": 280,
+        "lengthM": 3353,
+        "widthM": 46
+      }
+    ]
+  },
+  "notes": [
+    "Altitude is barometric, corrected so touchdown equals PDX field elevation (31 ft).",
+    "A night scene: city lights and rivers are placed at their true coordinates."
+  ],
+  "altCorrectionFt": 31,
+  "terrain": {
+    "lat0": 45.08930990990991,
+    "lat1": 45.7609000900901,
+    "lon0": -123.05154253509072,
+    "lon1": -122.04934746490929,
+    "n": 384,
+    "source": "Terrarium z12 (~28 m source) · 384 grid · no vertical exaggeration"
+  },
+  "track": {
+    "t0": 3960,
+    "hz": 1,
+    "count": 1301
+  }
+}
