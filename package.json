@@ -7,6 +7,7 @@
     "dev": "next dev",
     "data": "tsx scripts/ingest.ts",
     "terrain": "tsx scripts/terrain.ts",
+    "pipeline": "tsx scripts/ingest.ts && tsx scripts/terrain.ts",
     "verify": "tsx scripts/verify.ts",
     "prebuild": "tsx scripts/verify.ts",
     "build": "next build",

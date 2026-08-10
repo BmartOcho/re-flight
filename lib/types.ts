@@ -138,6 +138,12 @@ export interface FlightMeta {
   scaleMultipliers: number[];
   /** Starting camera. */
   camera: 'chase' | 'orbit';
+  /**
+   * Initial playhead (absolute seconds-of-day Z). The full track stays scrubbable;
+   * this just opens autoplay on the interesting part (Jackson skips the high cruise
+   * in from the east). Defaults to the track start.
+   */
+  startAtT?: number;
   /** Optional night-scene decorations. */
   decorations?: {
     rivers?: RiverPath[];

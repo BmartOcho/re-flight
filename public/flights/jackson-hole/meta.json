@@ -149,6 +149,7 @@
     1
   ],
   "camera": "chase",
+  "startAtT": 67573,
   "decorations": {
     "rivers": [
       [

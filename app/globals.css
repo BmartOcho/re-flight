@@ -1,0 +1,266 @@
+:root {
+  --mono: 'SF Mono', 'Cascadia Mono', 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  --bg: #0b1220;
+  --bg-soft: #111a2e;
+  --card: #16223c;
+  --ink: #eaf1fb;
+  --ink-dim: #93a3be;
+  --line: rgba(150, 170, 200, 0.16);
+  --ember: #e0642b;
+  --ember-2: #ffb15a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--mono);
+  -webkit-font-smoothing: antialiased;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------- gallery */
+.wrap {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.hero {
+  position: relative;
+  padding: 92px 0 40px;
+  border-bottom: 1px solid var(--line);
+  overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(1200px 380px at 78% -8%, rgba(224, 100, 43, 0.16), transparent 60%),
+    radial-gradient(900px 320px at 10% 0%, rgba(44, 127, 168, 0.14), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ember-2);
+}
+.hero h1 {
+  font-size: clamp(32px, 6vw, 62px);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.02;
+  margin: 14px 0 0;
+}
+.hero h1 .thin {
+  color: var(--ink-dim);
+  font-weight: 400;
+}
+.lede {
+  max-width: 640px;
+  margin-top: 18px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-dim);
+}
+.lede b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.claim {
+  display: inline-block;
+  margin-top: 20px;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--ember-2);
+  border: 1px solid rgba(255, 177, 90, 0.32);
+  background: rgba(224, 100, 43, 0.08);
+  padding: 8px 13px;
+  border-radius: 3px;
+}
+
+.section-label {
+  margin: 44px 0 18px;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 18px;
+  padding-bottom: 8px;
+}
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 230px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--card);
+  transition: transform 0.16s ease, border-color 0.16s ease;
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(255, 177, 90, 0.4);
+}
+.card:focus-visible {
+  outline: 2px solid var(--ember-2);
+  outline-offset: 2px;
+}
+.card .sky {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+.card[data-theme='alpine'] .sky {
+  background: linear-gradient(160deg, #2f6ea8, #9dc4e0 70%, #dfeaf2);
+}
+.card[data-theme='day'] .sky {
+  background: linear-gradient(160deg, #5b9fd4, #bcd6ea 68%, #e6eff6);
+}
+.card[data-theme='night'] .sky {
+  background: linear-gradient(160deg, #0b1c34, #10233f 55%, #1b3357);
+}
+.card .path {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.9;
+}
+.card .body {
+  position: relative;
+  z-index: 2;
+  margin-top: auto;
+  padding: 16px 18px 18px;
+  background: linear-gradient(to top, rgba(6, 12, 22, 0.92), rgba(6, 12, 22, 0.62) 60%, transparent);
+}
+.card .cs {
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--ember-2);
+}
+.card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  margin: 5px 0 6px;
+  color: #fff;
+}
+.card p {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #cdd8ea;
+}
+.card .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.chip {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  color: #dfe8f5;
+  border: 1px solid rgba(220, 232, 248, 0.24);
+  border-radius: 999px;
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+.chip.real {
+  color: #12100a;
+  background: var(--ember-2);
+  border-color: var(--ember-2);
+}
+
+.site-foot {
+  margin: 40px 0 60px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--ink-dim);
+}
+.site-foot a {
+  color: var(--ember-2);
+}
+
+/* ---------------------------------------------------------------- flight page */
+.flight-page {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+}
+.replay-host {
+  position: absolute;
+  inset: 0;
+  outline: none;
+}
+.brand-link {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: #fff;
+  mix-blend-mode: difference;
+  padding: 6px 12px;
+  opacity: 0.72;
+  transition: opacity 0.2s;
+}
+.brand-link:hover,
+.brand-link:focus-visible {
+  opacity: 1;
+}
+.replay-status {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #0b1220;
+  color: var(--ink-dim);
+  font-size: 13px;
+  letter-spacing: 0.05em;
+}
+.spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--line);
+  border-top-color: var(--ember-2);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+  .card {
+    transition: none;
+  }
+}

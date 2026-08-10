@@ -143,6 +143,9 @@ export const FLIGHTS: AuthoredFlight[] = [
     ],
     scaleMultipliers: [8, 3, 1],
     camera: 'chase',
+    // Open on the descent into the valley; the 130 km cruise in from the east
+    // (real, and scrubbable) is high above terrain and not the story.
+    startAtT: 67573,
     fieldElevationFt: 6451,
     decorations: {
       rivers: [
