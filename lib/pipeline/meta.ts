@@ -1,0 +1,79 @@
+// Synthesize a FlightMeta for an uploaded flight from its processed stats + the
+// pilot's choices. Honest by construction: dataSource 'gps', attitude disclosed
+// as derived, terrain source noted when present.
+import type { FlightMeta, SceneTheme, TerrainMeta } from '../types';
+import type { ProcessResult } from './process';
+
+const WINGSPAN: Record<string, number> = { DHC3: 17.7, A319: 34.1, B39M: 35.9 };
+const MODEL: Record<string, string> = { DHC3: 'DHC-3 Turbo Otter', A319: 'Airbus A319', B39M: 'Boeing 737 MAX 9' };
+
+export interface UploadOptions {
+  title: string;
+  icao: 'DHC3' | 'A319' | 'B39M';
+  hasTerrain: boolean;
+}
+
+export function synthMeta(
+  stats: ProcessResult['stats'],
+  opts: UploadOptions,
+  terrain: TerrainMeta | null,
+): FlightMeta {
+  const centerLon = (stats.lon0 + stats.lon1) / 2;
+  const centerLat = (stats.lat0 + stats.lat1) / 2;
+  const relief = stats.altMaxFt - stats.altMinFt;
+  const theme: SceneTheme = terrain && relief > 6000 ? 'alpine' : 'day';
+
+  const notes = [
+    'Attitude (pitch/roll) and groundspeed are DERIVED from your GPS positions — not recorded.',
+    terrain ? 'Terrain built on demand from Terrarium elevation tiles.' : 'No terrain rendered for this flight.',
+  ];
+  if (!stats.hadTime) notes.push('Your log had no timestamps; the clock shows elapsed time and speeds are approximate.');
+
+  return {
+    slug: 'upload',
+    callsign: 'YOUR FLIGHT',
+    title: opts.title || 'Uploaded flight',
+    blurb: `${stats.count.toLocaleString()} real GPS positions · ${fmtDur(stats.durationSec)} · ${Math.round(stats.altMaxFt).toLocaleString()} ft max`,
+    aircraft: {
+      icao: opts.icao,
+      model: MODEL[opts.icao],
+      wingspanM: WINGSPAN[opts.icao],
+    },
+    dateISO: '',
+    dateLabel: 'Your log',
+    theme,
+    timezone: { label: 'LOCAL', offsetHours: Math.round(centerLon / 15) },
+    origin: { lat: centerLat, lon: centerLon },
+    datum: stats.fieldElevFt,
+    altitudeType: 'geometric',
+    dataSource: 'gps',
+    altCorrectionFt: 0,
+    trackAttribution: 'Your uploaded GPS log',
+    terrain,
+    reference: null,
+    peaks: [],
+    events: [],
+    phases: phasesFor(stats),
+    scaleMultipliers: opts.icao === 'DHC3' ? [25, 8, 1] : [8, 3, 1],
+    camera: 'chase',
+    notes,
+    track: { t0: 0, hz: 1, count: stats.count }, // t0 overwritten by the real track on load
+  };
+}
+
+function phasesFor(stats: ProcessResult['stats']) {
+  if (stats.altMaxFt - stats.altMinFt < 500) return [{ untilT: null, label: 'IN FLIGHT' }];
+  const climbEnd = Math.round(stats.durationSec * 0.25);
+  const descentStart = Math.round(stats.durationSec * 0.7);
+  return [
+    { untilT: climbEnd, label: 'DEPARTURE · CLIMB' },
+    { untilT: descentStart, label: 'EN ROUTE' },
+    { untilT: null, label: 'ARRIVAL · DESCENT' },
+  ];
+}
+
+function fmtDur(sec: number): string {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return m ? `${m}m ${s}s` : `${s}s`;
+}

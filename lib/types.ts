@@ -123,8 +123,8 @@ export interface FlightMeta {
    * Disclosed in the UI when non-zero.
    */
   altCorrectionFt: number;
-  /** Data provenance tier — ADS-B is the primary claim; radar is the archival tier. */
-  dataSource: 'adsb' | 'radar';
+  /** Data provenance tier — ADS-B is the primary claim; radar is the archival tier; gps is an uploaded pilot log. */
+  dataSource: 'adsb' | 'radar' | 'gps';
   /** Attribution string for the track source. */
   trackAttribution: string;
   /** Terrain box + source, or null if this flight renders without a DEM. */

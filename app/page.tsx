@@ -46,6 +46,21 @@ export default function Gallery() {
             </Link>
           );
         })}
+        <Link href="/replay/" className="card upload" aria-label="Fly your own log">
+          <div className="sky" />
+          <div className="glyph">✈︎</div>
+          <div className="body">
+            <div className="cs">BRING YOUR OWN FLIGHT</div>
+            <h3>Fly your own log</h3>
+            <p>Drop a GPX, KML, or CSV track from ForeFlight, Garmin, or any GPS logger and watch your own flight over real terrain — processed and verified in your browser.</p>
+            <div className="meta">
+              <span className="chip">.gpx</span>
+              <span className="chip">.kml</span>
+              <span className="chip">.csv</span>
+              <span className="chip real">GPS</span>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <footer className="site-foot">

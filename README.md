@@ -25,15 +25,24 @@ on a numeric verification harness.
 
 ## Architecture
 
-Static Next.js (App Router) site — **no server runtime**. All the heavy data is baked
-into static files at build time, so a visitor never hits ADS-B Exchange or fetches
-hundreds of elevation tiles.
+Next.js (App Router) on Vercel. The curated gallery + flight pages are statically
+prerendered (SSG) with all their data baked in at build time, so a visitor never hits
+ADS-B Exchange or fetches hundreds of elevation tiles. **"Fly your own log"** adds one
+small serverless function (`/api/terrain`) — the only runtime piece — because browsers
+can't fetch the elevation tiles directly (the bucket sends no CORS headers). Remove
+`app/replay` + `app/api/terrain` and re-add `output: 'export'` to `next.config.mjs` to
+go back to a pure static site.
 
 ```
 app/                     gallery (/) and per-flight routes (/flights/[slug])
+app/replay/              "fly your own log" — drop a GPX/KML/CSV and watch it
+app/api/terrain/         serverless DEM endpoint (builds terrain on demand for uploads)
 components/FlightReplay   client wrapper: lazy-loads the flight data, mounts the engine
+components/UploadReplay   the upload flow: parse → process → verify → fetch terrain → fly
 lib/replay/engine.ts      the whole renderer (imperative three.js), config-driven by meta.json
 lib/replay/track.ts       the numeric core: stateAt, Catmull-Rom, arc-length, bank/pitch, DEM
+lib/pipeline/             uploads: parse (gpx/kml/csv) → process (gotchas 1-7) → verify → meta
+lib/terrain/build.ts      server-side DEM builder (bbox → Int16 heightmap) for the terrain API
 lib/aircraft/             procedural DHC-3 / 737 MAX 9 / A319 models
 data/authored.ts          the human-written half of each flight (events, peaks, decorations)
 scripts/ingest.ts         prototypes → public/flights/<slug>/{track.json, meta.json, terrain.bin}
@@ -84,17 +93,35 @@ npm run verify         # numeric gate
 `scripts/.tilecache/`. The generated `.bin`/`.json` are committed so production builds
 are hermetic and offline.
 
+## Fly your own log
+
+`/replay` lets a pilot drop a track log (**.gpx / .kml / .csv** from ForeFlight,
+Garmin, CloudAhoy, any GPS logger) and watch their own flight in 3-D. The log is
+parsed and processed **entirely in the browser** — resampled to 1 Hz, de-glitched,
+attitude and groundspeed derived, then run through the client-side verification
+checks before it renders. The only thing that leaves the browser is the flight's
+bounding box, sent to `/api/terrain` to build a DEM on demand. Everything is
+disclosed: uploads render as a `gps` track ("your actual recorded position"), with
+derived attitude and the on-demand terrain source called out.
+
+## Adding curated flights
+
+The curated tier needs real ADS-B data, which must be fetched where ADS-B Exchange is
+reachable (not every sandbox allows it). See **`docs/ADDING-FLIGHTS.md`** for the full
+runbook (discover → confirm type → fetch trace → process per gotchas 1-7 → build
+terrain → verify), and `data/candidates/` for drafted-but-not-yet-fetched flights.
+
 ## Deploy
 
-The build is a fully static export (`out/`), deployable to any static host. `npm run
-build` runs the verification gate first (`prebuild`), then exports.
+`npm run build` runs the verification gate first (`prebuild`), then builds. Because of
+the terrain function, this deploys as a **Vercel-hosted Next.js app** (the curated
+pages still prerender as static HTML; only `/api/terrain` runs at request time).
 
-- **Vercel** — import the repo; framework preset **Next.js** detects `output: 'export'`
-  automatically. No env vars needed for a root deploy.
-- **Netlify / Cloudflare Pages / S3 / any static host** — build command `npm run build`,
-  publish directory `out`.
-- **GitHub Pages** (served under a subpath) — set `NEXT_PUBLIC_BASE_PATH=/<repo>` before
-  building; `next.config.mjs` and asset fetches both honour it.
+- **Vercel** — import the repo; framework preset **Next.js** is auto-detected. No env
+  vars needed for a root deploy.
+- **Pure static host** (Netlify/S3/GitHub Pages) — remove `app/replay` + `app/api/terrain`
+  and re-add `output: 'export'` to `next.config.mjs`; then the build emits a static `out/`.
+  `NEXT_PUBLIC_BASE_PATH=/<repo>` supports subpath hosts.
 
 ## Provenance & attribution
 
