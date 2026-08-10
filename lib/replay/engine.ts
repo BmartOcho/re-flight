@@ -48,7 +48,7 @@ export function createReplay(
       ? 'ALTITUDE BROADCAST GEOMETRIC (GPS)'
       : `ALTITUDE BAROMETRIC${meta.altCorrectionFt ? ` · QNH-CORRECTED +${meta.altCorrectionFt} FT TO FIELD ELEV` : ''}`;
   const footLines = [
-    `TRACK · ${meta.trackAttribution} (${meta.dataSource === 'adsb' ? 'ADS-B' : 'RADAR-DERIVED'}) · ${altDisclosure}`,
+    `TRACK · ${meta.trackAttribution} (${meta.dataSource === 'adsb' ? 'ADS-B' : meta.dataSource === 'gps' ? 'GPS LOG' : 'RADAR-DERIVED'}) · ${altDisclosure}`,
     ter ? `TERRAIN · ${ter.source}` : 'NO TERRAIN MESH FOR THIS FLIGHT',
     'ATTITUDE DERIVED FROM TURN &amp; CLIMB RATES — NOT BROADCAST · LIVERY STYLISED',
     ...(meta.notes ?? []).map((n) => n.toUpperCase().replace(/</g, '&lt;')),
@@ -58,10 +58,10 @@ export function createReplay(
     <div class="rp-scene" data-el="scene"></div>
     <div class="rp-labels" data-el="labels"></div>
     <div class="rp-title rp-card">
-      <div class="rp-eyebrow">Flight replay · real ${meta.dataSource === 'adsb' ? 'ADS-B' : 'radar'} track</div>
+      <div class="rp-eyebrow">Flight replay · real ${meta.dataSource === 'adsb' ? 'ADS-B' : meta.dataSource === 'gps' ? 'GPS' : 'radar'} track</div>
       <div class="rp-h1">${esc(meta.callsign)} — ${esc(meta.title.toUpperCase())}</div>
       <div class="rp-sub">${esc(meta.aircraft.model)}${meta.aircraft.operator ? ' · ' + esc(meta.aircraft.operator) : ''} · ${esc(meta.dateLabel)}<br>${esc(meta.blurb)}</div>
-      <div class="rp-real">EVERY POINT IS THE AIRCRAFT'S ACTUAL BROADCAST POSITION</div>
+      <div class="rp-real">EVERY POINT IS ${meta.dataSource === 'gps' ? 'YOUR ACTUAL RECORDED POSITION' : "THE AIRCRAFT'S ACTUAL BROADCAST POSITION"}</div>
     </div>
     <div class="rp-hud rp-card">
       <div class="rp-clock"><span data-el="clkZ">--:--:--</span><small> Z</small><br><small data-el="clkL">--:-- ${localLabel}</small></div>
