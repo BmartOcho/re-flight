@@ -454,11 +454,15 @@ a {
 .flight-page .brand-link {
   font-family: var(--mono);
 }
-/* upload card on the gallery */
+/* upload / lookup cards on the gallery */
 .card.upload .sky {
   background: linear-gradient(160deg, #1a1230, #241a3f 55%, #3a2a1b);
 }
-.card.upload .glyph {
+.card.find .sky {
+  background: linear-gradient(160deg, #10222f, #163244 55%, #1b3a3a);
+}
+.card.upload .glyph,
+.card.find .glyph {
   position: absolute;
   inset: 0;
   z-index: 1;
@@ -467,4 +471,78 @@ a {
   justify-content: center;
   font-size: 46px;
   opacity: 0.7;
+}
+
+/* lookup form */
+.lookup-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin: 30px 0 14px;
+}
+.lookup-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.lookup-form input {
+  font-family: var(--mono);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  background: var(--bg-soft);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 11px 12px;
+  min-width: 180px;
+}
+.lookup-form input:focus-visible {
+  outline: 2px solid var(--ember-2);
+  outline-offset: 1px;
+}
+.lookup-form .btn-primary {
+  margin-left: 0;
+}
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-bottom: 60px;
+}
+.chip-btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 7px 13px;
+  cursor: pointer;
+}
+.chip-btn:hover {
+  border-color: var(--ember-2);
+}
+.chip-btn em {
+  color: var(--ink-dim);
+  font-style: normal;
+}
+.hint-note {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-top: 10px;
+  line-height: 1.6;
+}
+.hint-note code {
+  background: var(--bg-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
 }

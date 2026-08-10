@@ -104,6 +104,20 @@ bounding box, sent to `/api/terrain` to build a DEM on demand. Everything is
 disclosed: uploads render as a `gps` track ("your actual recorded position"), with
 derived attitude and the on-demand terrain source called out.
 
+## Search by tail number
+
+`/find` takes an aircraft **registration** + **date** and pulls that day's real
+track from the ADS-B archive, verifies it, and flies it over terrain built on
+demand — the same renderer, from `dataSource: 'adsb'`. The lookup runs in
+`/api/terrain`'s sibling function `/api/flight` (server-side, because the data hosts
+aren't reachable from a browser), and is **provider-swappable**: the default pulls
+ADS-B Exchange's free `globe_history` archive (best-effort — it may rate-limit or
+refuse server requests, and coverage starts ~2016), and a paid feed can be dropped
+in behind `ADSB_PROVIDER` / an API key without touching the ingest or renderer.
+Responses cache hard (a given tail+date is deterministic), which also keeps the app
+light on the free archive. Every lookup is disclosed as an ADS-B track with derived
+attitude and a stylised model.
+
 ## Adding curated flights
 
 The curated tier needs real ADS-B data, which must be fetched where ADS-B Exchange is
