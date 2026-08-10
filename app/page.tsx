@@ -61,6 +61,20 @@ export default function Gallery() {
             </div>
           </div>
         </Link>
+        <Link href="/find/" className="card find" aria-label="Search by tail number">
+          <div className="sky" />
+          <div className="glyph">🔎</div>
+          <div className="body">
+            <div className="cs">SEARCH THE ARCHIVE</div>
+            <h3>Search by tail number</h3>
+            <p>Enter a registration and a date; we pull that day&rsquo;s real ADS-B track from the archive, verify it, and fly it over real terrain.</p>
+            <div className="meta">
+              <span className="chip">tail # + date</span>
+              <span className="chip">~2016 on</span>
+              <span className="chip real">ADS-B</span>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <footer className="site-foot">

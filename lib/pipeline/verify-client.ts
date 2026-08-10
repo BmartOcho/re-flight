@@ -5,7 +5,6 @@
 // prove (attitude, speed, continuity).
 import type { TrackData } from '../types';
 import { bankRad, pitchRad } from '../replay/track';
-import type { ProcessResult } from './process';
 
 export interface Check {
   name: string;
@@ -13,7 +12,16 @@ export interface Check {
   ok: boolean;
 }
 
-export function verifyTrack(track: TrackData, stats: ProcessResult['stats']): { checks: Check[]; pass: boolean } {
+/** The subset of stats the checks need — shared by uploaded logs and ADS-B lookups. */
+export interface VerifyStats {
+  count: number;
+  durationSec: number;
+  gsMaxKt: number;
+  altMinFt: number;
+  altMaxFt: number;
+}
+
+export function verifyTrack(track: TrackData, stats: VerifyStats): { checks: Check[]; pass: boolean } {
   const S = track.s;
   let maxBank = 0;
   let atClamp = 0;
