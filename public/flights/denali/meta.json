@@ -1,0 +1,169 @@
+{
+  "slug": "denali",
+  "callsign": "N2YV",
+  "title": "Over the Summit of Denali",
+  "blurb": "A single-engine bushplane circles the highest peak in North America — 660 metres from the summit at 20,432 ft.",
+  "aircraft": {
+    "icao": "DHC3",
+    "model": "DHC-3 Turbo Otter",
+    "registration": "N2YV",
+    "operator": "Talkeetna Air Taxi",
+    "wingspanM": 17.7
+  },
+  "dateISO": "2026-08-07",
+  "dateLabel": "Aug 7 2026",
+  "theme": "alpine",
+  "timezone": {
+    "label": "AKDT",
+    "offsetHours": -8
+  },
+  "origin": {
+    "lat": 63.0692,
+    "lon": -151.007
+  },
+  "datum": 0,
+  "altitudeType": "geometric",
+  "dataSource": "adsb",
+  "trackAttribution": "ADS-B Exchange",
+  "reference": {
+    "name": "DENALI",
+    "lat": 63.0692,
+    "lon": -151.007,
+    "elevationFt": 20310
+  },
+  "peaks": [
+    {
+      "name": "DENALI",
+      "lat": 63.0692,
+      "lon": -151.007,
+      "elevationFt": 20310
+    },
+    {
+      "name": "MOUNT FORAKER",
+      "lat": 62.9604,
+      "lon": -151.3997,
+      "elevationFt": 17400
+    },
+    {
+      "name": "MOUNT HUNTER",
+      "lat": 62.9506,
+      "lon": -151.0872,
+      "elevationFt": 14573
+    },
+    {
+      "name": "MOUNT SILVERTHRONE",
+      "lat": 63.1656,
+      "lon": -150.7397,
+      "elevationFt": 13220
+    },
+    {
+      "name": "KAHILTNA DOME",
+      "lat": 63.0203,
+      "lon": -151.2394,
+      "elevationFt": 12525
+    },
+    {
+      "name": "MOUNT CROSSON",
+      "lat": 63.0186,
+      "lon": -151.1897,
+      "elevationFt": 12352
+    },
+    {
+      "name": "MOUNT HUNTINGTON",
+      "lat": 62.945,
+      "lon": -150.8156,
+      "elevationFt": 12240
+    },
+    {
+      "name": "MOOSE'S TOOTH",
+      "lat": 62.9694,
+      "lon": -150.6039,
+      "elevationFt": 10335
+    }
+  ],
+  "events": [
+    {
+      "t": 541,
+      "tag": "00:09 Z",
+      "msg": "ENTERING THE ALASKA RANGE",
+      "dur": 16
+    },
+    {
+      "t": 905,
+      "tag": "00:15 Z",
+      "msg": "10 KM OUT · STILL 6,250 FT BELOW THE SUMMIT",
+      "dur": 18
+    },
+    {
+      "t": 1242,
+      "tag": "00:20 Z",
+      "msg": "17,400 FT · CLIMBING PAST MOUNT FORAKER",
+      "dur": 16
+    },
+    {
+      "t": 1727,
+      "tag": "00:28:47 Z",
+      "msg": "20,725 FT — OVER THE TOP OF DENALI",
+      "dur": 22
+    },
+    {
+      "t": 1902,
+      "tag": "00:31:42 Z",
+      "msg": "CLOSEST PASS — 660 METRES FROM THE SUMMIT",
+      "dur": 24
+    },
+    {
+      "t": 2152,
+      "tag": "00:35 Z",
+      "msg": "LETTING DOWN TOWARD TALKEETNA",
+      "dur": 16
+    }
+  ],
+  "phases": [
+    {
+      "untilT": 541,
+      "label": "INBOUND FROM TALKEETNA"
+    },
+    {
+      "untilT": 1242,
+      "label": "INTO THE ALASKA RANGE"
+    },
+    {
+      "untilT": 1702,
+      "label": "CLIMBING · 17,000 → 20,000"
+    },
+    {
+      "untilT": 2102,
+      "label": "THE SUMMIT CIRCUIT"
+    },
+    {
+      "untilT": null,
+      "label": "OUTBOUND · DESCENDING"
+    }
+  ],
+  "scaleMultipliers": [
+    25,
+    8,
+    1
+  ],
+  "camera": "chase",
+  "notes": [
+    "Altitude is broadcast GEOMETRIC (GPS) — the only altitude valid against terrain.",
+    "Aircraft drawn oversize to stay visible; press the scale button for life size."
+  ],
+  "altCorrectionFt": 0,
+  "terrain": {
+    "lat0": 62.58,
+    "lat1": 63.21,
+    "lon0": -151.29,
+    "lon1": -150.13,
+    "n": 288,
+    "source": "Terrarium z12 (~17 m source) · 288 grid · no vertical exaggeration"
+  },
+  "track": {
+    "t0": 2,
+    "hz": 1,
+    "count": 2383,
+    "base": 1786147200
+  }
+}
