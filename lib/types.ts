@@ -41,6 +41,15 @@ export interface TerrainMeta {
   n: number; // grid is n x n
   /** Human label for the source, shown in the disclosure footer. */
   source: string;
+  /**
+   * Optional satellite texture draped over the DEM (curated flights: a baked
+   * static file next to terrain.bin, e.g. "/flights/<slug>/imagery.jpg"; on-
+   * demand flights pass a data: URL at runtime instead). Row 0 = north, same
+   * box as the DEM. Absent -> procedural palette.
+   */
+  imageryUrl?: string;
+  /** Attribution for the imagery, shown in the disclosure footer. */
+  imagerySource?: string;
 }
 
 export interface NamedPeak {
@@ -99,13 +108,23 @@ export interface FlightMeta {
   /** One or two line subtitle. */
   blurb: string;
   aircraft: {
-    /** ICAO type designator: DHC3, B39M, A319. Selects the procedural model. */
-    icao: 'DHC3' | 'B39M' | 'A319';
+    /**
+     * ICAO type designator (B39M, C172, PC12, …). Drives the parametric model:
+     * the registry (lib/aircraft/registry.ts) maps it to real dimensions and
+     * configuration, so the rendered silhouette matches what actually flew.
+     */
+    icao: string;
     model: string; // human readable
     registration?: string;
     operator?: string;
     /** Real wingspan, metres — camera distances and true-scale derive from this. */
     wingspanM: number;
+    /**
+     * Bespoke liveried model key ('talkeetna-otter', 'alaska-max9',
+     * 'american-a319') for the curated flights. Absent -> parametric model
+     * with a neutral stylised livery.
+     */
+    livery?: string;
   };
   dateISO: string; // "2026-08-07"
   dateLabel: string; // "Aug 7 2026"

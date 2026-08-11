@@ -74,18 +74,25 @@ This is authoritative for **registration ↔ hex ↔ type ↔ operator**. Use th
 values for the flight's `callsign` / `aircraft.registration` / `aircraft.operator`
 and to pick the rendered model.
 
-**Map the real type to one of the three available models** (`lib/aircraft/index.ts`
-— `DHC3`, `B39M`, `A319`; do **not** add a new model). Note the mapping in a comment.
-
-| Real type (examples)                     | `aircraft.icao` | Note                          |
-| ---------------------------------------- | --------------- | ----------------------------- |
-| A319 / A320 / A321 / A32x                 | `A319`          | closest narrowbody Airbus     |
-| 737-700/-800/-900, 737 MAX               | `B39M`          | closest 737                   |
-| DHC-3 Otter, other single-engine bushplane | `DHC3`        | closest GA / bush             |
+**Set `aircraft.icao` to the real ICAO type designator** (from hexdb's
+`ICAOTypeCode`). The parametric model library (`lib/aircraft/registry.ts`, 240+
+types) renders the correct silhouette — wing position, engines, tail, dimensions —
+for what actually flew. Check the type exists in the registry (`npm run
+check-aircraft` lists everything; the unlinked `/hangar` page previews any type);
+if it's missing, add a registry row with published span/length and the right
+archetype rather than mapping to a lookalike. Leave `aircraft.livery` unset —
+the bespoke liveried models (`talkeetna-otter`, `alaska-max9`, `american-a319`)
+belong to the three original flights only; new flights get the neutral stylised
+livery, which the UI already discloses.
 
 Set `aircraft.wingspanM` to the **real airframe's** span (it drives true-scale and
-camera distances — gotcha #24). A319/A320 with wingtip fences ≈ 34.1 m, with
-sharklets ≈ 35.8 m; 737 MAX 9 ≈ 35.9 m; DHC-3 = 17.7 m.
+camera distances — gotcha #24); it should match the registry row's span for the type.
+
+**Optional satellite drape:** after `npm run terrain`, run `npm run imagery` on a
+machine that can reach `tiles.maps.eox.at` — it bakes `imagery.jpg` next to
+`terrain.bin` and patches meta.json. Skipped automatically for night themes; the
+procedural palette covers any flight without it. Sentinel-2 cloudless is
+CC BY-NC-SA 4.0 (attribution shows in the disclosure footer).
 
 ---
 

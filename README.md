@@ -43,7 +43,8 @@ lib/replay/engine.ts      the whole renderer (imperative three.js), config-drive
 lib/replay/track.ts       the numeric core: stateAt, Catmull-Rom, arc-length, bank/pitch, DEM
 lib/pipeline/             uploads: parse (gpx/kml/csv) → process (gotchas 1-7) → verify → meta
 lib/terrain/build.ts      server-side DEM builder (bbox → Int16 heightmap) for the terrain API
-lib/aircraft/             procedural DHC-3 / 737 MAX 9 / A319 models
+lib/aircraft/             parametric model library: ICAO type registry (240+ types with real
+                          dimensions) + config-driven builder, plus 3 bespoke liveried models
 data/authored.ts          the human-written half of each flight (events, peaks, decorations)
 scripts/ingest.ts         prototypes → public/flights/<slug>/{track.json, meta.json, terrain.bin}
 scripts/terrain.ts        terrarium z12 tiles → Int16 DEM for the non-embedded flights
@@ -85,13 +86,50 @@ npm run dev            # http://localhost:3000
 Regenerate the flight data from the reference prototypes (writes `public/flights/`):
 
 ```bash
-npm run pipeline       # = ingest (extract tracks + Denali's DEM) then terrain (fetch DEMs)
+npm run pipeline       # = ingest (extract tracks + Denali's DEM), terrain (fetch DEMs), imagery
 npm run verify         # numeric gate
+npm run check-aircraft # numeric gate for the aircraft model library
 ```
 
 `npm run terrain` fetches AWS terrarium tiles (free, no key) and caches them under
 `scripts/.tilecache/`. The generated `.bin`/`.json` are committed so production builds
 are hermetic and offline.
+
+## The aircraft is what actually flew
+
+Every flight renders the real airframe type. The tail-number lookup already resolves a
+registration to its **ICAO type designator** (adsbdb/hexdb); `lib/aircraft/registry.ts`
+maps 240+ designators — GA singles, turboprops, bizjets, regional and widebody airliners,
+helicopters — to published dimensions and configuration (wing position/sweep, engine
+count/type/placement, tail kind, winglets, gear), and `lib/aircraft/parametric.ts` builds a
+correctly-proportioned low-poly model from that spec. A C172 renders as a strutted
+high-wing single, a King Air as a T-tail turboprop twin, an MD-11 with its fin-root #2
+engine. Unknown designators fall back family → class, and the UI **discloses** when the
+model is a closest-match guess. Liveries stay deliberately neutral/stylised (also
+disclosed); the three curated flights keep their hand-built liveried models. Uploads take
+any registry type. `scripts/check-aircraft.ts` numerically gates the library (bounding box
+vs published span/length for every type), and the unlinked `/hangar` page spins any type
+for eyeballing.
+
+## Terrain look: two tiers
+
+The DEM mesh's **procedural palette** is land-cover aware: a latitude-based treeline
+(tropics ~3.9 km → Alaska ~0.7 km) places forest below and rock/scree above, with snow
+~700 m higher; perfectly-flat DEM cells render as water (lakes, rivers, sea — real flatness
+is the detector, nothing is drawn that isn't in the elevation data); per-vertex noise breaks
+up banding and high-relief valleys get subtle ambient shading. The sky is a three-stop
+gradient with horizon haze and a sun disc matching the scene light; night scenes get a
+deterministic star field.
+
+On top of that, an optional **satellite imagery drape** (Sentinel-2 cloudless via EOX,
+`lib/terrain/imagery.ts`) can texture the mesh with the real landscape: `npm run imagery`
+bakes `imagery.jpg` per curated flight (committed, like the DEMs), and the `/api/terrain` +
+`/api/flight` endpoints build it on demand for uploads and lookups. It is best-effort by
+design — where the tile host is unreachable the procedural palette renders instead, and
+night scenes always stay procedural (daylight imagery under a night sky reads wrong).
+**Licensing note:** Sentinel-2 cloudless is **CC BY-NC-SA 4.0** (attribution is shown in
+the disclosure footer; non-commercial). Swap the provider in `lib/terrain/imagery.ts` for
+commercial use.
 
 ## Fly your own log
 

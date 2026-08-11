@@ -18,6 +18,7 @@ interface Found {
   meta: FlightMeta;
   track: TrackData;
   heights: Int16Array | null;
+  imageryUrl: string | null;
   checks: Check[];
   pass: boolean;
   warnings: string[];
@@ -71,7 +72,8 @@ export default function LookupReplay() {
         for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
         heights = new Int16Array(u8.buffer);
       }
-      setFound({ meta: data.meta, track: data.track, heights, checks: data.checks, pass: data.pass, warnings: data.warnings || [], aircraft: data.aircraft, flights: data.flights || [], chosen: data.chosen ?? 0 });
+      const imageryUrl = data.imageryB64 ? `data:image/jpeg;base64,${data.imageryB64}` : null;
+      setFound({ meta: data.meta, track: data.track, heights, imageryUrl, checks: data.checks, pass: data.pass, warnings: data.warnings || [], aircraft: data.aircraft, flights: data.flights || [], chosen: data.chosen ?? 0 });
       setPhase('ready');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -86,7 +88,7 @@ export default function LookupReplay() {
       const { createReplay } = await import('@/lib/replay/engine');
       if (!hostRef.current) return;
       handleRef.current?.dispose();
-      handleRef.current = createReplay(hostRef.current, found.meta, found.track, found.heights);
+      handleRef.current = createReplay(hostRef.current, found.meta, found.track, found.heights, found.imageryUrl);
     });
   }, [found]);
 

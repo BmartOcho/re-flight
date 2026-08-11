@@ -7,7 +7,9 @@
     "dev": "next dev",
     "data": "tsx scripts/ingest.ts",
     "terrain": "tsx scripts/terrain.ts",
-    "pipeline": "tsx scripts/ingest.ts && tsx scripts/terrain.ts",
+    "imagery": "tsx scripts/imagery.ts",
+    "check-aircraft": "tsx scripts/check-aircraft.ts",
+    "pipeline": "tsx scripts/ingest.ts && tsx scripts/terrain.ts && tsx scripts/imagery.ts",
     "verify": "tsx scripts/verify.ts",
     "prebuild": "tsx scripts/verify.ts",
     "build": "next build",
@@ -15,6 +17,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "jpeg-js": "^0.4.4",
     "next": "^15.5.0",
     "pngjs": "^7.0.0",
     "react": "^19.0.0",
