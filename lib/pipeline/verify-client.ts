@@ -49,7 +49,7 @@ export function verifyTrack(track: TrackData, stats: VerifyStats): { checks: Che
     { name: 'Continuous 1 Hz track', detail: `${stats.count.toLocaleString()} points · ${fmtDur(stats.durationSec)}`, ok: stats.count >= 5 },
     { name: 'Max bank angle', detail: `${maxBank.toFixed(1)}° · ${clampPct.toFixed(1)}% at clamp`, ok: maxBank < 35.01 && clampPct < 5 },
     { name: 'Max pitch angle', detail: `${maxPitch.toFixed(1)}°`, ok: maxPitch < 20 },
-    { name: 'Groundspeed derived', detail: `peak ${Math.round(stats.gsMaxKt)} kt`, ok: stats.gsMaxKt > 0 && stats.gsMaxKt < 700 },
+    { name: 'Groundspeed', detail: `peak ${Math.round(stats.gsMaxKt)} kt`, ok: stats.gsMaxKt > 0 && stats.gsMaxKt < 700 },
     { name: 'No teleports', detail: `max 1 s step ${Math.round(maxJump)} kt-equiv`, ok: maxJump < 700 },
     { name: 'Altitude range', detail: `${Math.round(stats.altMinFt).toLocaleString()} → ${Math.round(stats.altMaxFt).toLocaleString()} ft`, ok: true },
   ];

@@ -7,6 +7,13 @@ import type { Check } from '@/lib/pipeline/verify-client';
 
 type Phase = 'idle' | 'searching' | 'ready' | 'flying' | 'error';
 
+interface FlightSummary {
+  index: number;
+  startZ: number;
+  durationSec: number;
+  maxAltFt: number;
+}
+
 interface Found {
   meta: FlightMeta;
   track: TrackData;
@@ -15,7 +22,16 @@ interface Found {
   pass: boolean;
   warnings: string[];
   aircraft: { hex: string; registration: string; type: string; operator?: string };
+  flights: FlightSummary[];
+  chosen: number;
 }
+
+const fmtZ = (s: number) => {
+  const h = Math.floor(s / 3600) % 24;
+  const m = Math.floor((s % 3600) / 60);
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}Z`;
+};
+const fmtDur = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}m` : `${s}s`);
 
 const EXAMPLES = [
   { reg: 'N704AL', date: '2024-01-05', label: 'Alaska 1282 (door plug)' },
@@ -39,12 +55,13 @@ export default function LookupReplay() {
     setPhase('idle');
   };
 
-  const search = useCallback(async (r: string, d: string) => {
+  const search = useCallback(async (r: string, d: string, flightIndex?: number) => {
     if (!r.trim() || !d.trim()) return;
     setPhase('searching');
     setError('');
     try {
-      const res = await fetch(`${basePath}/api/flight?reg=${encodeURIComponent(r.trim())}&date=${encodeURIComponent(d.trim())}`);
+      const fp = flightIndex != null ? `&flight=${flightIndex}` : '';
+      const res = await fetch(`${basePath}/api/flight?reg=${encodeURIComponent(r.trim())}&date=${encodeURIComponent(d.trim())}${fp}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || `lookup ${res.status}`);
       let heights: Int16Array | null = null;
@@ -54,7 +71,7 @@ export default function LookupReplay() {
         for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
         heights = new Int16Array(u8.buffer);
       }
-      setFound({ meta: data.meta, track: data.track, heights, checks: data.checks, pass: data.pass, warnings: data.warnings || [], aircraft: data.aircraft });
+      setFound({ meta: data.meta, track: data.track, heights, checks: data.checks, pass: data.pass, warnings: data.warnings || [], aircraft: data.aircraft, flights: data.flights || [], chosen: data.chosen ?? 0 });
       setPhase('ready');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -112,6 +129,9 @@ export default function LookupReplay() {
           {phase === 'searching' ? <><span className="spinner" /> Searching the archive…</> : 'Search'}
         </button>
       </form>
+      <p className="hint-note">
+        A <b>registration</b> (e.g. N704AL, D-AIUA, G-EZBA) — not a flight number like &ldquo;SWA172&rdquo; or a callsign.
+      </p>
 
       {phase === 'idle' ? (
         <div className="examples">
@@ -152,6 +172,22 @@ export default function LookupReplay() {
             ))}
           </ul>
           {found.warnings.length ? <ul className="warns">{found.warnings.map((w, i) => <li key={i}>⚠ {w}</li>)}</ul> : null}
+          {found.flights.length > 1 ? (
+            <div className="flights">
+              <div className="flights-label">{found.flights.length} flights that day — pick one:</div>
+              <div className="flights-list">
+                {found.flights.map((f) => (
+                  <button
+                    key={f.index}
+                    className={`flight-chip${f.index === found.chosen ? ' on' : ''}`}
+                    onClick={() => search(reg, date, f.index)}
+                  >
+                    {fmtZ(f.startZ)} · {fmtDur(f.durationSec)} · {f.maxAltFt.toLocaleString()} ft
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="opts">
             <button className="btn-primary" onClick={fly}>► Fly it</button>
           </div>
