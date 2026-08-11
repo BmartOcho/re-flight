@@ -3,14 +3,18 @@
 // as derived, terrain source noted when present.
 import type { FlightMeta, SceneTheme, TerrainMeta } from '../types';
 import type { ProcessResult } from './process';
-
-const WINGSPAN: Record<string, number> = { DHC3: 17.7, A319: 34.1, B39M: 35.9 };
-const MODEL: Record<string, string> = { DHC3: 'DHC-3 Turbo Otter', A319: 'Airbus A319', B39M: 'Boeing 737 MAX 9' };
+import { resolveSpec } from '../aircraft/registry';
 
 export interface UploadOptions {
   title: string;
-  icao: 'DHC3' | 'A319' | 'B39M';
+  /** ICAO type designator ("C172", "SR22", "PC12", …) — any registry type. */
+  icao: string;
   hasTerrain: boolean;
+}
+
+/** Sensible size-toggle steps for the aircraft's real span (small = bigger boost). */
+export function scaleMultipliersFor(wingspanM: number): number[] {
+  return wingspanM < 24 ? [25, 8, 1] : [8, 3, 1];
 }
 
 export function synthMeta(
@@ -18,6 +22,7 @@ export function synthMeta(
   opts: UploadOptions,
   terrain: TerrainMeta | null,
 ): FlightMeta {
+  const spec = resolveSpec(opts.icao);
   const centerLon = (stats.lon0 + stats.lon1) / 2;
   const centerLat = (stats.lat0 + stats.lat1) / 2;
   const relief = stats.altMaxFt - stats.altMinFt;
@@ -36,8 +41,8 @@ export function synthMeta(
     blurb: `${stats.count.toLocaleString()} real GPS positions · ${fmtDur(stats.durationSec)} · ${Math.round(stats.altMaxFt).toLocaleString()} ft max`,
     aircraft: {
       icao: opts.icao,
-      model: MODEL[opts.icao],
-      wingspanM: WINGSPAN[opts.icao],
+      model: spec.name,
+      wingspanM: spec.wingspanM,
     },
     dateISO: '',
     dateLabel: 'Your log',
@@ -54,7 +59,7 @@ export function synthMeta(
     peaks: [],
     events: [],
     phases: phasesFor(stats),
-    scaleMultipliers: opts.icao === 'DHC3' ? [25, 8, 1] : [8, 3, 1],
+    scaleMultipliers: scaleMultipliersFor(spec.wingspanM),
     camera: 'chase',
     notes,
     track: { t0: 0, hz: 1, count: stats.count }, // t0 overwritten by the real track on load

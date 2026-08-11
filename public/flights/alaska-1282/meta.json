@@ -8,7 +8,8 @@
     "model": "Boeing 737 MAX 9",
     "registration": "N704AL",
     "operator": "Alaska Airlines",
-    "wingspanM": 35.9
+    "wingspanM": 35.9,
+    "livery": "alaska-max9"
   },
   "dateISO": "2024-01-05",
   "dateLabel": "Jan 5 2024",

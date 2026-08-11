@@ -1,8 +1,18 @@
-// Procedural aircraft models, ported verbatim from the three prototypes.
-// Nose points -Z. Each returns the group, its built wingspan in local units
-// (so the engine can derive TRUE_SCALE = wingspanM * M / spanUnits), and an
-// optional per-frame hook for moving parts (prop disc, strobe).
+// Procedural aircraft models. Nose points -Z. Each returns the group, its
+// built wingspan in local units (so the engine can derive
+// TRUE_SCALE = wingspanM * M / spanUnits), and an optional per-frame hook for
+// moving parts (prop disc, strobe).
+//
+// Two tiers:
+//  - Three bespoke liveried models (ported verbatim from the prototypes),
+//    selected by meta.aircraft.livery — the curated flights keep their looks.
+//  - Everything else goes through the type registry (registry.ts) and the
+//    parametric builder (parametric.ts): the ICAO type designator from the
+//    tail-number lookup drives a correctly-proportioned model of what
+//    actually flew — right wing position, engines, tail, dimensions.
 import * as THREE from 'three';
+import { resolveSpec } from './registry';
+import { buildParametric } from './parametric';
 
 export interface BuiltAircraft {
   group: THREE.Group;
@@ -11,17 +21,16 @@ export interface BuiltAircraft {
   animate?: (t: number, dt: number, reducedMotion: boolean) => void;
 }
 
-export type AircraftIcao = 'DHC3' | 'B39M' | 'A319';
+/** Bespoke liveried models, keyed by meta.aircraft.livery. */
+const BESPOKE: Record<string, () => BuiltAircraft> = {
+  'talkeetna-otter': buildDHC3,
+  'alaska-max9': buildB39M,
+  'american-a319': buildA319,
+};
 
-export function buildAircraft(icao: AircraftIcao): BuiltAircraft {
-  switch (icao) {
-    case 'DHC3':
-      return buildDHC3();
-    case 'B39M':
-      return buildB39M();
-    case 'A319':
-      return buildA319();
-  }
+export function buildAircraft(icao: string, livery?: string): BuiltAircraft {
+  if (livery && BESPOKE[livery]) return BESPOKE[livery]();
+  return buildParametric(resolveSpec(icao));
 }
 
 /* ---- DHC-3 Turbo Otter: high wing, single turboprop, fixed gear (from N2YV) ---- */

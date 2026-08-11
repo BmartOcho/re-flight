@@ -4,6 +4,7 @@
 // deterministic for a given box, so they cache hard on the CDN.
 import { NextResponse } from 'next/server';
 import { buildDEM, type Box } from '@/lib/terrain/build';
+import { buildImagery } from '@/lib/terrain/imagery';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,8 +32,21 @@ export async function GET(req: Request) {
   try {
     const dem = await buildDEM(box, n, { maxTiles: 160 });
     const buf = Buffer.from(dem.heights.buffer, dem.heights.byteOffset, dem.heights.byteLength);
+    // Optional satellite drape — best-effort: a blocked/slow imagery host must
+    // never take the DEM down with it.
+    let imageryB64: string | null = null;
+    let imagerySource: string | null = null;
+    if (q.get('imagery') !== '0') {
+      try {
+        const img = await buildImagery(box, { px: 1024, maxTiles: 64, timeoutMs: 6000 });
+        imageryB64 = img.jpeg.toString('base64');
+        imagerySource = img.source;
+      } catch {
+        /* no imagery — procedural palette renders instead */
+      }
+    }
     return NextResponse.json(
-      { n: dem.n, z: dem.z, box: dem.box, min: dem.min, max: dem.max, heightsB64: buf.toString('base64') },
+      { n: dem.n, z: dem.z, box: dem.box, min: dem.min, max: dem.max, heightsB64: buf.toString('base64'), imageryB64, imagerySource },
       { headers: { 'Cache-Control': 'public, s-maxage=31536000, max-age=86400, immutable' } },
     );
   } catch (e) {

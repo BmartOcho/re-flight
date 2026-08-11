@@ -5,11 +5,22 @@ import { parseLog } from '@/lib/pipeline/parse';
 import { processLog, type ProcessResult } from '@/lib/pipeline/process';
 import { verifyTrack, type Check } from '@/lib/pipeline/verify-client';
 import { synthMeta } from '@/lib/pipeline/meta';
+import { resolveSpec } from '@/lib/aircraft/registry';
 import { basePath } from '@/lib/paths';
 import type { TerrainMeta, TrackData } from '@/lib/types';
 
-type Icao = 'DHC3' | 'A319' | 'B39M';
 type Phase = 'idle' | 'parsing' | 'ready' | 'building' | 'flying' | 'error';
+
+// Common designators surfaced as suggestions; any registry type works.
+const COMMON_TYPES = [
+  'C172', 'C182', 'C208', 'P28A', 'SR22', 'BE36', 'M20P', 'DA40', 'RV7',
+  'DHC2', 'DHC3', 'DHC6', 'PC12', 'TBM9', 'BE20', 'B350',
+  'C25A', 'C56X', 'CL35', 'GLF5', 'PC24', 'E55P',
+  'CRJ9', 'E75L', 'DH8D', 'AT76',
+  'A319', 'A320', 'A21N', 'B737', 'B738', 'B39M', 'B752',
+  'A333', 'A359', 'B77W', 'B789', 'B744',
+  'R44', 'B407', 'EC35', 'A139',
+];
 
 interface Processed {
   track: TrackData;
@@ -25,7 +36,7 @@ export default function UploadReplay() {
   const [error, setError] = useState('');
   const [drag, setDrag] = useState(false);
   const [proc, setProc] = useState<Processed | null>(null);
-  const [icao, setIcao] = useState<Icao>('DHC3');
+  const [icao, setIcao] = useState('C172');
   const [withTerrain, setWithTerrain] = useState(true);
   const [buildMsg, setBuildMsg] = useState('');
   const hostRef = useRef<HTMLDivElement>(null);
@@ -50,8 +61,8 @@ export default function UploadReplay() {
       const { checks, pass } = verifyTrack(result.track, result.stats);
       const title = file.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').slice(0, 40);
       setProc({ track: result.track, stats: result.stats, checks, pass, warnings: [...parsed.warnings, ...result.warnings], title });
-      // guess aircraft from speed
-      setIcao(result.stats.gsMaxKt > 250 ? 'A319' : 'DHC3');
+      // guess aircraft class from speed; the pilot can type their real type
+      setIcao(result.stats.gsMaxKt > 250 ? 'A320' : result.stats.gsMaxKt > 180 ? 'PC12' : 'C172');
       setPhase('ready');
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -68,6 +79,7 @@ export default function UploadReplay() {
     setPhase('building');
     let terrain: TerrainMeta | null = null;
     let heights: Int16Array | null = null;
+    let imageryUrl: string | null = null;
     try {
       if (withTerrain) {
         setBuildMsg('Building terrain from elevation tiles…');
@@ -91,6 +103,10 @@ export default function UploadReplay() {
         for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
         heights = new Int16Array(u8.buffer);
         terrain = { ...data.box, n: data.n, source: `Terrarium z${data.z} (on demand) · ${data.n} grid` };
+        if (data.imageryB64 && terrain) {
+          imageryUrl = `data:image/jpeg;base64,${data.imageryB64}`;
+          terrain.imagerySource = data.imagerySource || undefined;
+        }
       }
     } catch (e) {
       setBuildMsg(`Terrain unavailable (${e instanceof Error ? e.message : 'error'}); flying without it.`);
@@ -105,7 +121,7 @@ export default function UploadReplay() {
       const { createReplay } = await import('@/lib/replay/engine');
       if (!hostRef.current) return;
       handleRef.current?.dispose();
-      handleRef.current = createReplay(hostRef.current, meta, proc.track, heights);
+      handleRef.current = createReplay(hostRef.current, meta, proc.track, heights, imageryUrl);
     });
   }, [proc, icao, withTerrain]);
 
@@ -196,12 +212,26 @@ export default function UploadReplay() {
           ) : null}
           <div className="opts">
             <label>
-              Aircraft
-              <select value={icao} onChange={(e) => setIcao(e.target.value as Icao)}>
-                <option value="DHC3">DHC-3 Turbo Otter (GA)</option>
-                <option value="A319">Airbus A319 (airliner)</option>
-                <option value="B39M">Boeing 737 MAX 9 (airliner)</option>
-              </select>
+              Aircraft type (ICAO)
+              <input
+                list="icao-types"
+                value={icao}
+                onChange={(e) => setIcao(e.target.value.toUpperCase())}
+                placeholder="C172, SR22, PC12…"
+                spellCheck={false}
+                style={{ textTransform: 'uppercase' }}
+              />
+              <datalist id="icao-types">
+                {COMMON_TYPES.map((t) => (
+                  <option key={t} value={t}>{resolveSpec(t).name}</option>
+                ))}
+              </datalist>
+              <span className="type-name">
+                {(() => {
+                  const s = resolveSpec(icao);
+                  return s.generic ? `${s.name} (closest match)` : s.name;
+                })()}
+              </span>
             </label>
             <label className="chk">
               <input type="checkbox" checked={withTerrain} onChange={(e) => setWithTerrain(e.target.checked)} />

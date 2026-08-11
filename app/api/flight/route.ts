@@ -11,19 +11,15 @@ import { fetchTrace } from '@/lib/adsb/trace';
 import { cleanAndSegment, ingestSegment, defaultFlightIndex } from '@/lib/adsb/ingest';
 import { AdsbError } from '@/lib/adsb/types';
 import { buildDEM } from '@/lib/terrain/build';
+import { buildImagery } from '@/lib/terrain/imagery';
 import { verifyTrack } from '@/lib/pipeline/verify-client';
+import { resolveSpec } from '@/lib/aircraft/registry';
+import { scaleMultipliersFor } from '@/lib/pipeline/meta';
 import type { FlightMeta, SceneTheme } from '@/lib/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-function mapAircraft(type: string): { icao: 'DHC3' | 'A319' | 'B39M'; wingspanM: number; model: string } {
-  const t = type.toUpperCase();
-  if (/^A3(1|2|3)/.test(t)) return { icao: 'A319', wingspanM: 34.1, model: `Airbus ${type}` };
-  if (/^B7(3|8)|^B3[89]/.test(t)) return { icao: 'B39M', wingspanM: 35.9, model: `Boeing ${type}` };
-  return { icao: 'DHC3', wingspanM: 17.7, model: type || 'Light aircraft' };
-}
 
 export async function GET(req: Request) {
   const q = new URL(req.url).searchParams;
@@ -51,6 +47,7 @@ export async function GET(req: Request) {
 
     let terrain: FlightMeta['terrain'] = null;
     let heightsB64: string | null = null;
+    let imageryB64: string | null = null;
     if (wantTerrain) {
       const mLat = 8 / 111;
       const mLon = 8 / (111 * Math.cos(((stats.lat0 + stats.lat1) / 2) * (Math.PI / 180)));
@@ -66,6 +63,14 @@ export async function GET(req: Request) {
           const buf = Buffer.from(dem.heights.buffer, dem.heights.byteOffset, dem.heights.byteLength);
           heightsB64 = buf.toString('base64');
           terrain = { ...dem.box, n: dem.n, source: `Terrarium z${dem.z} (on demand) · ${dem.n} grid` };
+          // best-effort satellite drape; the procedural palette covers failure
+          try {
+            const img = await buildImagery(box, { px: 1024, maxTiles: 64, timeoutMs: 6000 });
+            imageryB64 = img.jpeg.toString('base64');
+            terrain.imagerySource = img.source;
+          } catch {
+            /* no imagery */
+          }
         } catch {
           warnings.push('Terrain could not be built for this flight; rendering without it.');
         }
@@ -75,18 +80,20 @@ export async function GET(req: Request) {
     }
 
     const { checks, pass } = verifyTrack(track, stats);
-    const map = mapAircraft(ac.type || raw.type);
+    const typeCode = (ac.type || raw.type || '').toUpperCase();
+    const spec = resolveSpec(typeCode, ac.typeLong);
     const relief = stats.altMaxFt - stats.altMinFt;
     const theme: SceneTheme = terrain && relief > 6000 ? 'alpine' : 'day';
     const regUp = (ac.registration || raw.registration || reg).toUpperCase();
-    const modelNote = map.model !== (ac.type || raw.type) ? `${map.model} (shown as ${map.icao})` : map.model;
+    // Prefer the registry's exact human-readable name; fall back to the DB's long name.
+    const model = spec.generic && ac.typeLong ? ac.typeLong : spec.name;
 
     const meta: FlightMeta = {
       slug: 'lookup',
       callsign: regUp,
-      title: `${ac.type || raw.type || 'Flight'} · ${date}`,
+      title: `${typeCode || 'Flight'} · ${date}`,
       blurb: `${(ac.operator ? ac.operator + ' · ' : '')}${stats.count.toLocaleString()} broadcast positions · ${Math.round(stats.altMaxFt).toLocaleString()} ft max`,
-      aircraft: { icao: map.icao, model: modelNote, registration: regUp, operator: ac.operator, wingspanM: map.wingspanM },
+      aircraft: { icao: typeCode, model, registration: regUp, operator: ac.operator, wingspanM: spec.wingspanM },
       dateISO: date,
       dateLabel: date,
       theme,
@@ -109,17 +116,19 @@ export async function GET(req: Request) {
               { untilT: Math.round(stats.durationSec * 0.7), label: 'EN ROUTE' },
               { untilT: null, label: 'ARRIVAL · DESCENT' },
             ],
-      scaleMultipliers: map.icao === 'DHC3' ? [25, 8, 1] : [8, 3, 1],
+      scaleMultipliers: scaleMultipliersFor(spec.wingspanM),
       camera: 'chase',
       notes: [
         'Attitude (pitch/roll) is derived from turn & climb rates — not broadcast.',
-        `Aircraft model is stylised (${map.icao}); livery stylised.`,
+        spec.generic
+          ? `Type ${typeCode || 'unknown'} is not in the model library — shown as its closest class (${spec.name}); livery stylised.`
+          : `Model generated from ${spec.name} published dimensions; livery stylised.`,
       ],
       track: { t0: track.t0, hz: 1, count: track.s.length, base: track.base },
     };
 
     return NextResponse.json(
-      { meta, track, heightsB64, aircraft: ac, checks, pass, warnings, flights: flightList, chosen: idx },
+      { meta, track, heightsB64, imageryB64, aircraft: ac, checks, pass, warnings, flights: flightList, chosen: idx },
       { headers: { 'Cache-Control': 'public, s-maxage=31536000, max-age=3600' } },
     );
   } catch (e) {

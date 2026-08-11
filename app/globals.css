@@ -419,7 +419,8 @@ a {
   letter-spacing: 0.08em;
   color: var(--ink-dim);
 }
-.opts select {
+.opts select,
+.opts input[list] {
   font-family: var(--mono);
   font-size: 12px;
   background: var(--bg-soft);
@@ -427,6 +428,15 @@ a {
   border: 1px solid var(--line);
   border-radius: 4px;
   padding: 7px 9px;
+}
+.opts input[list] {
+  width: 92px;
+}
+.opts .type-name {
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--ink-dim);
+  opacity: 0.85;
 }
 .opts .chk {
   cursor: pointer;

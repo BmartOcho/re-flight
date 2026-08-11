@@ -7,19 +7,38 @@
 import * as THREE from 'three';
 import type { FlightMeta, TrackData } from '../types';
 import { buildAircraft } from '../aircraft';
+import { basePath } from '../paths';
 import { M, FT_TO_M, KT_TO_MS, makeStateAt, makeToXZ, makeAltY, demAt, distKm, bankRad, pitchRad } from './track';
 
 export interface ReplayHandle {
   dispose: () => void;
 }
 
-const SNOW_LINE_M: Record<string, number> = { alpine: 1400, day: 2900, night: 3000 };
+/**
+ * Approximate treeline (m MSL) by latitude — piecewise linear on published
+ * treeline data (tropics ~3.9 km, US Rockies ~3 km, Alaska Range ~0.7 km).
+ * The snow line sits ~700 m above it. Against the hand-tuned per-theme snow
+ * lines the curated flights shipped with: Denali 1345 vs the old 1400 ✓;
+ * Portland 3632 vs 3000 (both above the whole DEM — no visible change);
+ * Tetons 3747 vs 2900 — deliberately higher: the flight is in August, and
+ * late-summer Tetons are bare rock with small snowfields, not snowcapped.
+ */
+function treelineM(latDeg: number): number {
+  const a = Math.abs(latDeg);
+  if (a <= 20) return 3900;
+  if (a <= 45) return 3900 - (a - 20) * 36; // US Rockies ~3000 m at 45°
+  if (a <= 62) return 3000 - (a - 45) * 135; // Alaska Range ~700 m at 62°
+  if (a <= 70) return 705 - (a - 62) * 60;
+  return 150;
+}
 
 export function createReplay(
   container: HTMLElement,
   meta: FlightMeta,
   track: TrackData,
   heights: Int16Array | null,
+  /** Runtime satellite texture (data: URL) for on-demand flights; curated flights use meta.terrain.imageryUrl. */
+  imageryDataUrl?: string | null,
 ): ReplayHandle {
   const prefersReduced =
     typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -47,9 +66,13 @@ export function createReplay(
     meta.altitudeType === 'geometric'
       ? 'ALTITUDE BROADCAST GEOMETRIC (GPS)'
       : `ALTITUDE BAROMETRIC${meta.altCorrectionFt ? ` · QNH-CORRECTED +${meta.altCorrectionFt} FT TO FIELD ELEV` : ''}`;
+  const imagerySrc = imageryDataUrl ?? (ter?.imageryUrl ? `${basePath}${ter.imageryUrl}` : null);
+  const useImagery = !!(imagerySrc && ter && heights && meta.theme !== 'night');
   const footLines = [
     `TRACK · ${meta.trackAttribution} (${meta.dataSource === 'adsb' ? 'ADS-B' : meta.dataSource === 'gps' ? 'GPS LOG' : 'RADAR-DERIVED'}) · ${altDisclosure}`,
-    ter ? `TERRAIN · ${ter.source}` : 'NO TERRAIN MESH FOR THIS FLIGHT',
+    ter
+      ? `TERRAIN · ${ter.source}${useImagery && ter.imagerySource ? ` · IMAGERY ${ter.imagerySource}` : ''}`
+      : 'NO TERRAIN MESH FOR THIS FLIGHT',
     'ATTITUDE DERIVED FROM TURN &amp; CLIMB RATES — NOT BROADCAST · LIVERY STYLISED',
     ...(meta.notes ?? []).map((n) => n.toUpperCase().replace(/</g, '&lt;')),
   ];
@@ -120,22 +143,64 @@ export function createReplay(
     const moon = new THREE.DirectionalLight(0x8fa8ff, 0.9);
     moon.position.set(-400, 600, 300);
     scene.add(moon);
+    // stars: deterministic scatter on the upper dome (it WAS a clear night sky
+    // wherever there's a night theme — the scatter itself is decorative)
+    const nStars = 420;
+    const sg = track3(new THREE.BufferGeometry());
+    const sp = new Float32Array(nStars * 3);
+    const sc = new Float32Array(nStars * 3);
+    for (let i = 0; i < nStars; i++) {
+      const az = pseudo(i * 3.7) * Math.PI * 2;
+      const el = 0.06 + Math.pow(pseudo(i * 9.1), 0.8) * 1.4; // bias low, none below horizon
+      const R = 13200;
+      sp[i * 3] = Math.cos(az) * Math.cos(el) * R;
+      sp[i * 3 + 1] = Math.sin(el) * R;
+      sp[i * 3 + 2] = Math.sin(az) * Math.cos(el) * R;
+      const b = 0.35 + pseudo(i * 5.3) * 0.65;
+      const warm = pseudo(i * 7.9) > 0.8;
+      sc[i * 3] = b;
+      sc[i * 3 + 1] = b * (warm ? 0.9 : 0.95);
+      sc[i * 3 + 2] = b * (warm ? 0.75 : 1.05);
+    }
+    sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    sg.setAttribute('color', new THREE.BufferAttribute(sc, 3));
+    const stars = new THREE.Points(sg, track3(new THREE.PointsMaterial({ size: 14, sizeAttenuation: true, vertexColors: true, transparent: true, opacity: 0.9, fog: false })));
+    scene.add(stars);
   } else {
-    const topC = meta.theme === 'alpine' ? 0x2f6ea8 : 0x5b9fd4;
-    const botC = meta.theme === 'alpine' ? 0xdfeaf2 : 0xe6eff6;
+    const alpine = meta.theme === 'alpine';
+    const zenC = alpine ? 0x2f6ea8 : 0x4b93cc;
+    const midC = alpine ? 0x87b4d6 : 0xa8cbe4;
+    const hazC = alpine ? 0xe4edf3 : 0xeef3f6;
+    const sunDir = new THREE.Vector3(-700, 520, 600).normalize(); // matches the directional light
     const skyMat = track3(
       new THREE.ShaderMaterial({
         side: THREE.BackSide,
         depthWrite: false,
-        uniforms: { top: { value: new THREE.Color(topC) }, bot: { value: new THREE.Color(botC) } },
+        uniforms: {
+          zen: { value: new THREE.Color(zenC) },
+          mid: { value: new THREE.Color(midC) },
+          haz: { value: new THREE.Color(hazC) },
+          sunDir: { value: sunDir },
+        },
         vertexShader:
-          'varying float h; void main(){h=normalize(position).y; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
-        fragmentShader:
-          'uniform vec3 top,bot; varying float h; void main(){gl_FragColor=vec4(mix(bot,top,clamp(h*1.2,0.0,1.0)),1.0);}',
+          'varying vec3 vDir; void main(){vDir=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+        fragmentShader: [
+          'uniform vec3 zen,mid,haz,sunDir; varying vec3 vDir;',
+          'void main(){',
+          '  float h = clamp(vDir.y, 0.0, 1.0);',
+          // three-stop gradient: haze hugs the horizon, zenith deepens overhead
+          '  vec3 c = mix(haz, mid, smoothstep(0.0, 0.18, h));',
+          '  c = mix(c, zen, smoothstep(0.18, 0.65, h));',
+          '  float s = max(dot(vDir, sunDir), 0.0);',
+          '  c += vec3(1.0, 0.94, 0.82) * pow(s, 900.0) * 1.2;', // sun disc
+          '  c += vec3(1.0, 0.9, 0.7) * pow(s, 12.0) * 0.14;', // forward-scatter glow
+          '  gl_FragColor = vec4(c, 1.0);',
+          '}',
+        ].join('\n'),
       }),
     );
-    scene.add(new THREE.Mesh(track3(new THREE.SphereGeometry(14000, 24, 16)), skyMat));
-    scene.fog = new THREE.FogExp2(meta.theme === 'alpine' ? 0xa9cde6 : 0xcfe0ee, 0.0003);
+    scene.add(new THREE.Mesh(track3(new THREE.SphereGeometry(14000, 32, 20)), skyMat));
+    scene.fog = new THREE.FogExp2(alpine ? 0xa9cde6 : 0xcfe0ee, 0.0003);
     scene.add(new THREE.HemisphereLight(0xcfe4f2, 0x6a7180, 1.0));
     const sun = new THREE.DirectionalLight(0xfff2dc, 1.15);
     sun.position.set(-700, 520, 600);
@@ -152,16 +217,25 @@ export function createReplay(
       if (heights[i] < demMin) demMin = heights[i];
       if (heights[i] > demMax) demMax = heights[i];
     }
-    const snowLine = SNOW_LINE_M[meta.theme] ?? 1400;
-    const cTundra = new THREE.Color(0x55613f);
+    // Land-cover bands from the latitude-aware treeline; snow ~700 m above it.
+    const treeline = treelineM((ter.lat0 + ter.lat1) / 2);
+    const snowLine = treeline + 700;
+    const relief = Math.max(1, demMax - demMin);
+    const cForestLush = new THREE.Color(0x2e4a26); // valley-floor canopy
+    const cForestDry = new THREE.Color(0x5a6b3d); // drier / higher slopes
+    const cTundra = new THREE.Color(0x77704c); // above-forest scrub
     const cRock = new THREE.Color(0x6d6659);
     const cScree = new THREE.Color(0x8b8579);
     const cSnow = new THREE.Color(0xf7fbff);
     const cIce = new THREE.Color(0xdcecf5);
+    const cWater = new THREE.Color(0x2b5d7d);
+    const cWaterDeep = new THREE.Color(0x1d4159);
     const cNight = new THREE.Color(0x0a1322);
+    const cNightWater = new THREE.Color(0x122c47);
     const g = track3(new THREE.BufferGeometry());
     const pos = new Float32Array(NT * NT * 3);
     const col = new Float32Array(NT * NT * 3);
+    const at = (i: number, j: number) => heights[Math.min(NT - 1, Math.max(0, i)) * NT + Math.min(NT - 1, Math.max(0, j))];
     for (let i = 0; i < NT; i++) {
       const lat = ter.lat1 - (ter.lat1 - ter.lat0) * (i / (NT - 1));
       for (let j = 0; j < NT; j++) {
@@ -172,19 +246,43 @@ export function createReplay(
         pos[k] = p.x;
         pos[k + 1] = altY(m / FT_TO_M);
         pos[k + 2] = p.z;
-        const mE = heights[i * NT + Math.min(j + 1, NT - 1)];
-        const mS = heights[Math.min(i + 1, NT - 1) * NT + j];
+        const mE = at(i, j + 1);
+        const mS = at(i + 1, j);
         const slope = Math.min(1, (Math.abs(m - mE) + Math.abs(m - mS)) / 260);
+        // Water: real lakes/rivers/sea are the only perfectly flat cells in a
+        // DEM. Require dead-flat over the 4-neighbourhood, below the snow line
+        // (dead-flat above it is glacier and stays ice-coloured).
+        const flat = Math.max(m, mE, mS, at(i, j - 1), at(i - 1, j)) - Math.min(m, mE, mS, at(i, j - 1), at(i - 1, j));
+        const isWater = m <= 0 || (flat < 2 && m < snowLine);
         let c: THREE.Color;
-        const lowMid = snowLine * 0.5;
-        if (m < lowMid) c = cTundra.clone().lerp(cRock, Math.max(0, m) / lowMid);
-        else if (m < snowLine) c = cRock.clone().lerp(cScree, (m - lowMid) / lowMid);
-        else {
+        if (isWater) {
+          c = cWater.clone().lerp(cWaterDeep, Math.min(1, Math.max(0, (treeline - m) / Math.max(400, treeline))));
+        } else if (m < treeline) {
+          // vegetation: lush low, drying toward the treeline, tundra band at the top
+          const f = Math.max(0, m - demMin) / Math.max(1, treeline - demMin);
+          c = cForestLush.clone().lerp(cForestDry, Math.min(1, f * 1.35));
+          if (f > 0.8) c.lerp(cTundra, (f - 0.8) / 0.2);
+          // steep vegetated slopes show rock through the canopy
+          if (slope > 0.5) c.lerp(cRock, Math.min(0.5, (slope - 0.5) * 1.2));
+        } else if (m < snowLine) {
+          c = cRock.clone().lerp(cScree, (m - treeline) / 700);
+        } else {
           const hi = Math.min(1, (m - snowLine) / 900);
           c = cScree.clone().lerp(slope > 0.55 ? cSnow : cIce, hi);
           if (slope > 0.75) c.lerp(cRock, Math.min(0.55, (slope - 0.75) * 2.0));
         }
-        if (night) c.multiplyScalar(0.2).lerp(cNight, 0.35);
+        // Per-vertex breakup so bands read as ground, not contour fill:
+        // fine deterministic jitter + a low-frequency patchiness field.
+        const n1 = pseudo(i * 12.9898 + j * 78.233) - 0.5;
+        const n2 = Math.sin(i * 0.061) * Math.sin(j * 0.083);
+        c.multiplyScalar(1 + n1 * 0.07 + n2 * (isWater ? 0.02 : 0.06));
+        // Valley ambient shading: in high-relief scenes the low ground sits in
+        // its own shadowed air; a subtle darkening reads as depth.
+        if (relief > 800 && !isWater) c.multiplyScalar(0.9 + 0.1 * Math.min(1, (m - demMin) / relief + 0.35));
+        if (night) {
+          c.multiplyScalar(0.2).lerp(cNight, 0.35);
+          if (isWater) c.lerp(cNightWater, 0.65); // moonlit water sheen
+        }
         col[k] = c.r;
         col[k + 1] = c.g;
         col[k + 2] = c.b;
@@ -201,9 +299,34 @@ export function createReplay(
       }
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    if (useImagery) {
+      // plain linear UVs: texture row 0 = north = vertex row i=0 (flipY texture -> v=1)
+      const uv = new Float32Array(NT * NT * 2);
+      for (let i = 0; i < NT; i++)
+        for (let j = 0; j < NT; j++) {
+          uv[(i * NT + j) * 2] = j / (NT - 1);
+          uv[(i * NT + j) * 2 + 1] = 1 - i / (NT - 1);
+        }
+      g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+    }
     g.setIndex(idx);
     g.computeVertexNormals();
-    scene.add(new THREE.Mesh(g, track3(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 }))));
+    const terrainMat = track3(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92 }));
+    scene.add(new THREE.Mesh(g, terrainMat));
+    if (useImagery && imagerySrc) {
+      // The procedural palette renders immediately; the satellite texture swaps
+      // in when it decodes. On failure the palette simply stays — no spinner.
+      new THREE.TextureLoader().load(imagerySrc, (tex) => {
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+        tex.wrapS = tex.wrapT = THREE.ClampToEdgeWrapping;
+        disposables.push(tex);
+        terrainMat.map = tex;
+        terrainMat.vertexColors = false;
+        terrainMat.color.set(0xffffff);
+        terrainMat.needsUpdate = true;
+      });
+    }
   }
 
   // --------------------------------------------------------------- decorations
@@ -365,7 +488,7 @@ export function createReplay(
   };
 
   // ------------------------------------------------------------------ aircraft
-  const built = buildAircraft(meta.aircraft.icao);
+  const built = buildAircraft(meta.aircraft.icao, meta.aircraft.livery);
   const plane = built.group;
   const TRUE_SCALE = (meta.aircraft.wingspanM * M) / built.spanUnits;
   let planeMult = meta.scaleMultipliers[0];
