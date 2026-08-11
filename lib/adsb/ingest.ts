@@ -2,13 +2,16 @@
 //   - BROADCAST groundspeed (gotcha #4), DERIVED heading (gotcha #5)
 //   - GEOMETRIC altitude where present (gotcha #7); 'ground' -> field elevation (#6)
 //   - resample to uniform 1 Hz (#1), split at gaps > 60 s (#2), stale filter (#3)
-// A day-file can hold several flight legs; we pick the longest airborne run.
+//   - drop teleport outliers (a single bad broadcast position)
+// A day-file holds many legs, so we split the day into real FLIGHTS (takeoff ->
+// landing, bounded by ground dwells) and let the caller pick one.
 import type { Sample, TrackData } from '../types';
 import { catmullRom } from '../replay/track';
 import { AdsbError, type RawTrace, type TracePoint } from './types';
 
 const R = 6371000;
 const KT = 1 / 0.514444;
+const OUTLIER_KT = 600; // a 1 s implied speed above this is a bad position, not a flight
 
 function haversineM(aLat: number, aLon: number, bLat: number, bLon: number): number {
   const p1 = (aLat * Math.PI) / 180;
@@ -27,6 +30,103 @@ function bearingDeg(aLat: number, aLon: number, bLat: number, bLon: number): num
   return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
 }
 
+export interface FlightSegment {
+  points: TracePoint[];
+  startT: number;
+  endT: number;
+  durationSec: number;
+  airborneCount: number;
+  maxAltFt: number;
+}
+
+const altOf = (p: TracePoint, field: number): number =>
+  p.ground ? field : p.altGeomFt ?? p.altBaroFt ?? field;
+
+/** Clean the day's points and split them into individual flights. */
+export function cleanAndSegment(raw: RawTrace): { flights: FlightSegment[]; fieldElevFt: number } {
+  let pts = [...raw.points].sort((a, b) => a.t - b.t).filter((p, i, a) => i === 0 || p.t !== a[i - 1].t);
+  if (pts.length < 4) throw new AdsbError('no_coverage', 'Not enough positions to build a flight.');
+
+  let field = Infinity;
+  for (const p of pts) {
+    const a = p.altGeomFt ?? p.altBaroFt;
+    if (a != null && a < field) field = a;
+  }
+  if (!Number.isFinite(field)) field = 0;
+
+  // stale + teleport-outlier filter
+  const kept: TracePoint[] = [pts[0]];
+  for (let i = 1; i < pts.length; i++) {
+    const prev = kept[kept.length - 1];
+    const dt = pts[i].t - prev.t;
+    const dm = haversineM(prev.lat, prev.lon, pts[i].lat, pts[i].lon);
+    if (dt > 3 && dm < 40 && altOf(pts[i], field) > field + 300) continue; // stale
+    if (dt > 0 && dm / dt / 0.514444 > OUTLIER_KT) continue; // teleport outlier
+    kept.push(pts[i]);
+  }
+  pts = kept;
+
+  // split at gaps > 60 s, then at ground dwells > 120 s (leg boundaries)
+  const coarse: TracePoint[][] = [[pts[0]]];
+  for (let i = 1; i < pts.length; i++) {
+    if (pts[i].t - pts[i - 1].t > 60) coarse.push([pts[i]]);
+    else coarse[coarse.length - 1].push(pts[i]);
+  }
+  const raw2: TracePoint[][] = [];
+  for (const run of coarse) {
+    let seg: TracePoint[] = [];
+    let groundStart: number | null = null;
+    let segHasAir = false;
+    for (const p of run) {
+      const air = altOf(p, field) > field + 500;
+      if (air) {
+        if (groundStart != null && segHasAir && p.t - groundStart > 120) {
+          raw2.push(seg);
+          seg = [];
+          segHasAir = false;
+        }
+        groundStart = null;
+        segHasAir = true;
+      } else if (groundStart == null) {
+        groundStart = p.t;
+      }
+      seg.push(p);
+    }
+    if (seg.length) raw2.push(seg);
+  }
+
+  // keep flights with real airborne content; trim long ground tails
+  const flights: FlightSegment[] = [];
+  for (const seg of raw2) {
+    const airIdx: number[] = [];
+    for (let i = 0; i < seg.length; i++) if (altOf(seg[i], field) > field + 500) airIdx.push(i);
+    if (airIdx.length < 5) continue;
+    const startT = seg[airIdx[0]].t - 30;
+    const endT = seg[airIdx[airIdx.length - 1]].t + 30;
+    const trimmed = seg.filter((p) => p.t >= startT && p.t <= endT);
+    if (trimmed.length < 4) continue;
+    let maxAlt = -Infinity;
+    for (const p of trimmed) maxAlt = Math.max(maxAlt, altOf(p, field));
+    flights.push({
+      points: trimmed,
+      startT: trimmed[0].t,
+      endT: trimmed[trimmed.length - 1].t,
+      durationSec: Math.floor(trimmed[trimmed.length - 1].t - trimmed[0].t),
+      airborneCount: airIdx.length,
+      maxAltFt: Math.round(maxAlt),
+    });
+  }
+  if (!flights.length) throw new AdsbError('no_coverage', 'No airborne flight found in that day’s track.');
+  return { flights, fieldElevFt: Math.round(field) };
+}
+
+/** Pick a sensible default flight: the longest airborne leg. */
+export function defaultFlightIndex(flights: FlightSegment[]): number {
+  let best = 0;
+  for (let i = 1; i < flights.length; i++) if (flights[i].durationSec > flights[best].durationSec) best = i;
+  return best;
+}
+
 export interface AdsbIngestResult {
   track: TrackData;
   stats: {
@@ -40,51 +140,20 @@ export interface AdsbIngestResult {
   warnings: string[];
 }
 
-export function ingestTrace(raw: RawTrace): AdsbIngestResult {
+/** Resample one flight segment to a clean 1 Hz track. */
+export function ingestSegment(seg: FlightSegment, fieldElevFt: number): AdsbIngestResult {
   const warnings: string[] = [];
-  let pts = [...raw.points].sort((a, b) => a.t - b.t).filter((p, i, a) => i === 0 || p.t !== a[i - 1].t);
-  if (pts.length < 4) throw new AdsbError('no_coverage', 'Not enough positions to build a flight.');
-
-  // field elevation ~ lowest observed geometric/baro altitude
-  let fieldElev = Infinity;
-  for (const p of pts) {
-    const a = p.altGeomFt ?? p.altBaroFt;
-    if (a != null && a < fieldElev) fieldElev = a;
-  }
-  if (!Number.isFinite(fieldElev)) fieldElev = 0;
-
-  const geomCount = pts.filter((p) => p.altGeomFt != null).length;
-  const altitudeType: 'geometric' | 'baro' = geomCount > pts.length * 0.5 ? 'geometric' : 'baro';
-  const altOf = (p: TracePoint): number => (p.ground ? fieldElev : (p.altGeomFt ?? p.altBaroFt ?? fieldElev));
-
-  // stale filter (airborne only)
-  const kept: TracePoint[] = [pts[0]];
-  for (let i = 1; i < pts.length; i++) {
-    const prev = kept[kept.length - 1];
-    if (pts[i].t - prev.t > 3 && haversineM(prev.lat, prev.lon, pts[i].lat, pts[i].lon) < 40 && altOf(pts[i]) > fieldElev + 300)
-      continue;
-    kept.push(pts[i]);
-  }
-  pts = kept;
-
-  // split at gaps > 60 s; pick the run with the most airborne samples (longest leg)
-  const runs: TracePoint[][] = [[pts[0]]];
-  for (let i = 1; i < pts.length; i++) {
-    if (pts[i].t - pts[i - 1].t > 60) runs.push([pts[i]]);
-    else runs[runs.length - 1].push(pts[i]);
-  }
-  const airborneCount = (run: TracePoint[]) => run.filter((p) => altOf(p) > fieldElev + 500).length;
-  const leg = runs.reduce((best, r) => (airborneCount(r) > airborneCount(best) ? r : best), runs[0]);
-  if (runs.length > 1) warnings.push(`Day held ${runs.length} segments; showing the longest flight (${leg.length} of ${pts.length} points).`);
-  if (airborneCount(leg) < 5) throw new AdsbError('no_coverage', 'No airborne flight found in that day’s track.');
-
-  const T = leg.map((p) => p.t - leg[0].t);
-  const duration = Math.floor(T[T.length - 1]);
+  const leg = seg.points;
+  const duration = seg.durationSec;
   if (duration < 5) throw new AdsbError('no_coverage', 'Flight segment is too short.');
 
+  const geomCount = leg.filter((p) => p.altGeomFt != null).length;
+  const altitudeType: 'geometric' | 'baro' = geomCount > leg.length * 0.5 ? 'geometric' : 'baro';
+
+  const T = leg.map((p) => p.t - leg[0].t);
   const LAT = leg.map((p) => p.lat);
   const LON = leg.map((p) => p.lon);
-  const ALT = leg.map(altOf);
+  const ALT = leg.map((p) => altOf(p, fieldElevFt));
   const GS = leg.map((p) => p.gsKt ?? 0);
   const at = (arr: number[], tau: number): number => {
     let i = 0;
@@ -106,7 +175,6 @@ export function ingestTrace(raw: RawTrace): AdsbIngestResult {
     gs[i] = Math.max(0, at(GS, i)); // broadcast gs, resampled
   }
 
-  // derive heading (unwrapped), vs, turn from smoothed positions
   const W = 2;
   const hdg = new Array<number>(N);
   const vs = new Array<number>(N);
@@ -120,16 +188,14 @@ export function ingestTrace(raw: RawTrace): AdsbIngestResult {
     acc += ((h - prevH + 540) % 360) - 180;
     hdg[i] = acc;
     prevH = h;
-    const dt = b - a || 1;
-    vs[i] = ((alt[b] - alt[a]) / dt) * 60;
+    vs[i] = ((alt[b] - alt[a]) / (b - a || 1)) * 60;
   }
   for (let i = 0; i < N; i++) {
     const a = Math.max(0, i - W);
     const b = Math.min(N - 1, i + W);
     turn[i] = (hdg[b] - hdg[a]) / (b - a || 1);
   }
-  const sm = (arr: number[]) => arr.map((_, i) => (arr[Math.max(0, i - 1)] + arr[i] + arr[Math.min(N - 1, i + 1)]) / 3);
-  const turnS = sm(turn);
+  const turnS = turn.map((_, i) => (turn[Math.max(0, i - 1)] + turn[i] + turn[Math.min(N - 1, i + 1)]) / 3);
 
   const s: Sample[] = [];
   for (let i = 0; i < N; i++) s.push([lat[i], lon[i], alt[i], gs[i], hdg[i], vs[i], turnS[i]]);
@@ -148,7 +214,7 @@ export function ingestTrace(raw: RawTrace): AdsbIngestResult {
 
   return {
     track,
-    stats: { count: N, durationSec: duration, lat0, lat1, lon0, lon1, altMinFt: altMin, altMaxFt: altMax, fieldElevFt: Math.round(fieldElev), gsMaxKt: gsMax, altitudeType },
+    stats: { count: N, durationSec: duration, lat0, lat1, lon0, lon1, altMinFt: altMin, altMaxFt: altMax, fieldElevFt, gsMaxKt: gsMax, altitudeType },
     warnings,
   };
 }

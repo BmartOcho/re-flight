@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { resolveAircraft } from '@/lib/adsb/resolve';
 import { fetchTrace } from '@/lib/adsb/trace';
-import { ingestTrace } from '@/lib/adsb/ingest';
+import { cleanAndSegment, ingestSegment, defaultFlightIndex } from '@/lib/adsb/ingest';
 import { AdsbError } from '@/lib/adsb/types';
 import { buildDEM } from '@/lib/terrain/build';
 import { verifyTrack } from '@/lib/pipeline/verify-client';
@@ -35,7 +35,19 @@ export async function GET(req: Request) {
   try {
     const ac = await resolveAircraft(reg);
     const raw = await fetchTrace(ac.hex, date);
-    const { track, stats, warnings } = ingestTrace(raw);
+    const { flights, fieldElevFt } = cleanAndSegment(raw);
+    const flightParam = q.get('flight');
+    const idx =
+      flightParam != null && Number.isFinite(Number(flightParam))
+        ? Math.max(0, Math.min(flights.length - 1, Math.floor(Number(flightParam))))
+        : defaultFlightIndex(flights);
+    const { track, stats, warnings } = ingestSegment(flights[idx], fieldElevFt);
+    const flightList = flights.map((f, i) => ({
+      index: i,
+      startZ: ((Math.floor(f.startT) % 86400) + 86400) % 86400,
+      durationSec: f.durationSec,
+      maxAltFt: f.maxAltFt,
+    }));
 
     let terrain: FlightMeta['terrain'] = null;
     let heightsB64: string | null = null;
@@ -107,7 +119,7 @@ export async function GET(req: Request) {
     };
 
     return NextResponse.json(
-      { meta, track, heightsB64, aircraft: ac, checks, pass, warnings },
+      { meta, track, heightsB64, aircraft: ac, checks, pass, warnings, flights: flightList, chosen: idx },
       { headers: { 'Cache-Control': 'public, s-maxage=31536000, max-age=3600' } },
     );
   } catch (e) {
