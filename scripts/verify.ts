@@ -41,6 +41,7 @@ interface Check {
 const GS_BAND: Record<string, [number, number]> = {
   DHC3: [35, 190], // Turbo Otter
   A319: [95, 600],
+  A320: [95, 600],
   B39M: [95, 600],
 };
 

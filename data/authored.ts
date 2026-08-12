@@ -243,4 +243,97 @@ export const FLIGHTS: AuthoredFlight[] = [
       'A night scene: city lights and rivers are placed at their true coordinates.',
     ],
   },
+
+  // --------------------------------------------------------------- Innsbruck
+  // AUA676 Warsaw -> Innsbruck, Sat 14 Feb 2026. Discovered via api.adsb.lol
+  // (coverage smoke-test), identity confirmed against hexdb.io/api/v1/aircraft/44001c,
+  // track from ADSBx globe_history. Window is the Inn-valley arrival only
+  // (12:12:39Z -> 12:18:27Z); the WAW cruise is not part of the story.
+  {
+    slug: 'innsbruck',
+    callsign: 'AUSTRIAN 676',
+    title: 'The Inn Valley Approach into Innsbruck',
+    blurb:
+      'An A320 threads the Inn valley to Innsbruck — the Karwendel wall to the north, Patscherkofel to the south — turning onto final for a 1,907 ft runway ringed by mountains.',
+    aircraft: {
+      icao: 'A320',
+      model: 'Airbus A320-214',
+      registration: 'OE-LBP',
+      operator: 'Austrian Airlines',
+      // Registry span for the A320 (sharkleted reference dimension), which is what
+      // the parametric model renders. Leave livery unset: the bespoke liveried
+      // models belong to the three original flights.
+      wingspanM: 35.8,
+    },
+    dateISO: '2026-02-14',
+    dateLabel: 'Feb 14 2026',
+    theme: 'alpine',
+    timezone: { label: 'CET', offsetHours: 1 }, // February — standard time, not CEST
+    origin: { lat: 47.2602, lon: 11.3439 },
+    // Scene datum = LOWI field elevation, so altitudes read against the valley floor.
+    datum: 1907,
+    // The trace carries alt_geom on 489/490 approach rows — the only altitude valid
+    // against a DEM (gotcha #7). No QNH correction needed.
+    altitudeType: 'geometric',
+    dataSource: 'adsb',
+    trackAttribution: 'ADS-B Exchange',
+    sourceHtml: 'innsbruck-lowi-approach.html',
+    embeddedTerrain: false,
+    terrainSource: 'Terrarium z12 (~26 m source) · 384 grid · no vertical exaggeration',
+    terrainBox: { lat0: 47.1, lat1: 47.4, lon0: 11.18, lon1: 11.75 },
+    terrainN: 384,
+    // Coordinates + heights are OSM `natural=peak` nodes (name/ele), cross-checked
+    // against the built DEM. The candidate draft's coordinates were approximate and
+    // three were badly wrong — Grosser Bettelwurf sat ~6 km off, which read 19% low
+    // against the DEM.
+    reference: { name: 'PATSCHERKOFEL', lat: 47.2088, lon: 11.4606, elevationFt: 7369 },
+    peaks: [
+      { name: 'HAFELEKARSPITZE', lat: 47.3128, lon: 11.3863, elevationFt: 7657 },
+      { name: 'RUMER SPITZE', lat: 47.3205, lon: 11.4261, elevationFt: 8051 },
+      { name: 'GROSSER BETTELWURF', lat: 47.3442, lon: 11.5199, elevationFt: 8940 },
+      { name: 'PATSCHERKOFEL', lat: 47.2088, lon: 11.4606, elevationFt: 7369 },
+      { name: 'GLUNGEZER', lat: 47.2076, lon: 11.5284, elevationFt: 8783 },
+      { name: 'SERLES', lat: 47.124, lon: 11.3813, elevationFt: 8914 },
+      { name: 'NOCKSPITZE (SAILE)', lat: 47.1921, lon: 11.3247, elevationFt: 7887 },
+    ],
+    // Absolute seconds-of-day (Z), re-timed against the real track: t0 = 43959
+    // (12:12:39Z), touchdown at 44307 (12:18:27Z).
+    events: [
+      { t: 43959, tag: '12:12:39 Z', msg: 'DOWN THE INN VALLEY · 26 KM TO RUN', dur: 16, tone: 'calm' },
+      { t: 44059, tag: '12:14:19 Z', msg: 'THROUGH 5,400 FT · THE KARWENDEL WALL TO THE NORTH', dur: 16 },
+      { t: 44174, tag: '12:16:14 Z', msg: 'TURNING ONTO FINAL · RUNWAY 26', dur: 15 },
+      { t: 44196, tag: '12:16:36 Z', msg: 'ABEAM PATSCHERKOFEL · 7,369 FT TO THE SOUTH', dur: 14 },
+      { t: 44231, tag: '12:17:11 Z', msg: 'UNDER THE NORDKETTE · HAFELEKARSPITZE 7,657 FT ABOVE', dur: 16 },
+      { t: 44271, tag: 'FINAL', msg: 'SHORT FINAL — RUNWAY 26, INNSBRUCK', dur: 14 },
+      { t: 44307, tag: '12:18:27 Z', msg: 'TOUCHDOWN — FIELD ELEVATION 1,907 FT', dur: 20, tone: 'calm' },
+    ],
+    phases: [
+      { untilT: 44174, label: 'INBOUND · DOWN THE INN VALLEY' },
+      { untilT: 44271, label: 'CURVING ONTO FINAL · RWY 26' },
+      { untilT: 44307, label: 'SHORT FINAL · RWY 26' },
+      { untilT: null, label: 'ON THE GROUND · INNSBRUCK' },
+    ],
+    scaleMultipliers: [8, 3, 1],
+    camera: 'chase',
+    startAtT: 43959,
+    fieldElevationFt: 1907,
+    decorations: {
+      // No river polyline. The candidate draft carried a rough Inn centreline that
+      // passed 26 m from the aerodrome reference point — i.e. it drew the river
+      // straight down the runway, ~1.3 km south of where the Inn actually runs.
+      // A day scene with the satellite drape already shows the real river, so the
+      // decorative one is dropped rather than re-guessed.
+      //
+      // RWY 08/26, 2,000 m x 45 m. Centre and bearing are the published
+      // threshold-to-threshold axis (252.2° true), not the aerodrome reference
+      // point — the rollout tracks this centreline to within 9 m.
+      runways: [{ lat: 47.2606, lon: 11.3427, bearing: 252, lengthM: 2000, widthM: 45 }],
+    },
+    notes: [
+      'Scene datum is Innsbruck field elevation (1,907 ft), so altitudes read against the valley floor.',
+      'Altitude is broadcast GEOMETRIC (GPS) — the only altitude valid against terrain.',
+      'The replay ends at the first on-ground sample. The valley walls shadow LOWI from ground receivers, so the touchdown itself falls in a 34 s coverage hole; it is interpolated across (well inside the 60 s no-bridge rule), and the rollout beyond it is not shown.',
+      'Rendered with the parametric A320 model in the neutral stylised livery.',
+    ],
+  },
 ];
