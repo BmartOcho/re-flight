@@ -242,11 +242,38 @@ Print a table per flight. A flight that fails does not ship.
   itself falls in a 34 s terrain-shadow hole. See `docs/ADDING-FLIGHTS.md` §Coverage for
   the confirmed numbers — it is now the worked example for deep-valley fields. Note the
   arrival was a modest 13° turn onto final, not the dramatic curved RNP assumed here.
-- **Queenstown (NZQN)** — Remarkables approach.
-- **Aspen (KASE)** — 6.6° LOC/DME-E, steepest airline approach in the US.
-- **Madeira (LPMA)** — legendary crosswind approach on a stilted runway.
-- **Barra (EGPR), Scotland** — the only scheduled airline service landing **on a beach**, tide
-  dependent. Charming, unique, Twin Otter.
+- ~~**Queenstown (NZQN)**~~ — **SHIPPED.** ANZ623 (A320 ZK-OXD), 11 Aug 2026, touchdown
+  04:31:05Z. **Worth remembering *how* it was found: coverage here is airframe/day
+  specific.** Of five Air NZ A320 landings sampled across 9 + 11 Aug, only this one keeps
+  sampling to short final (26 s touchdown hole, 15 s worst gap over the last 10 min); the
+  other four die 118–188 s out and are unshippable. At a mountain-basin field, sweep
+  several airframes and dates and pick the one whose trace survives — do not assume a bad
+  trace means a bad airport.
+- **Aspen (KASE)** — 6.6° LOC/DME-E, steepest airline approach in the US. **STILL OPEN —
+  discovery not solved, coverage NOT disproven.** 18 CRJ-700 airframes were swept across
+  6 dates (Aug 6–11 2026) with zero KASE landings, but that is a *sampling* failure, not a
+  coverage verdict: airline service is only a handful of flights a day, so a wrong airframe
+  list finds nothing no matter how many dates you add. Do not record Aspen as a no-ship on
+  this evidence — it looks nothing like Barra, where the traces reached the field and died.
+  **What to do differently:** the fleet-by-type endpoint
+  `api.adsb.lol/v2/type/CRJ7` returns live registrations and is the right way to build the
+  airframe list, but it only shows what is airborne *now* — sample it repeatedly, or catch
+  an actual KASE arrival live (poll `/v2/point/39.2232/-106.8687/30` filtered below
+  18,000 ft) and take the hex from that. Aspen also has heavy bizjet traffic (CL60, GLF5/6,
+  C56X), which is far easier to catch and is a legitimate alternative story — though the
+  6.6° airline approach is the better one.
+- ~~**Madeira (LPMA)**~~ — **SHIPPED.** TAP1685 (A320neo CS-TVA), 9 Aug 2026, the curved
+  visual approach to RWY 05. Coverage is the best of any flight in the roster: 8.8 s worst
+  gap, touchdown *and* rollout both captured. It is also the flight that exposed the
+  ellipsoidal-`alt_geom` trap — see `docs/ADDING-FLIGHTS.md` gotcha #7b.
+- ~~**Barra (EGPR), Scotland**~~ — **NO-SHIP. Do not attempt; the data does not exist.**
+  Loganair's Twin Otters are archived (G-HIAL 406df4, G-SGTS 406df5) and the traces reach
+  the Hebrides fine, but **the field itself is invisible to the receiver network**. G-SGTS
+  (11 Aug 2026): coverage dies 10.7 km out, one isolated sample at 2.98 km / 750 ft, then a
+  **1,837 s** hole spanning the landing, ground time and departure. G-HIAL (8 Aug 2026) is
+  worse — a **3,175 s** hole from 13.8 km out. Two airframes, two dates, same result. The
+  touchdown is simply not broadcast-covered, so a beach landing here could only be
+  fabricated. This is the Paro case (§3) in the North Atlantic.
 - **Courchevel (LFLJ)** — 18.6% gradient altiport.
 - **UA328** — Denver 777 engine failure, Feb 20 2021, tight return loop.
 - **SPAR19** — Pelosi's Taiwan flight, Aug 2 2022. Most-tracked flight ever (~708k concurrent).

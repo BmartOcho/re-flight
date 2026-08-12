@@ -336,4 +336,168 @@ export const FLIGHTS: AuthoredFlight[] = [
       'Rendered with the parametric A320 model in the neutral stylised livery.',
     ],
   },
+
+  // ----------------------------------------------------------------- Madeira
+  // TAP1685 (CS-TVA) into LPMA, Sun 9 Aug 2026 — the curved visual approach to
+  // RWY 05: down the south coast past the field, then a continuous 189° right
+  // turn back onto the runway. Coverage here is excellent: 8.8 s worst gap and
+  // the touchdown and rollout are both fully captured, unlike Innsbruck.
+  {
+    slug: 'madeira',
+    callsign: 'TAP 1685',
+    title: 'The Curved Approach into Madeira',
+    blurb:
+      'An A320neo runs down Madeira’s south coast, then turns 180° back over the Atlantic to line up on a runway built out on pillars above the sea.',
+    aircraft: {
+      icao: 'A20N',
+      model: 'Airbus A320neo',
+      registration: 'CS-TVA',
+      operator: 'TAP Air Portugal',
+      wingspanM: 35.8,
+    },
+    dateISO: '2026-08-09',
+    dateLabel: 'Aug 9 2026',
+    theme: 'day',
+    timezone: { label: 'WEST', offsetHours: 1 },
+    origin: { lat: 32.6979, lon: -16.7745 },
+    // Sea level: the whole approach is flown over the Atlantic, so altitudes read
+    // above the water rather than against a valley floor.
+    datum: 0,
+    // Broadcast geometric altitude — but see altCorrectionFt. On this trace
+    // alt_geom is height above the WGS84 ELLIPSOID, not MSL: it reads ~350 ft
+    // while the aircraft sits on a 192 ft runway. Madeira has a ~+50 m geoid
+    // separation, and all four LPMA arrivals sampled showed the same 158–208 ft
+    // bias. Uncorrected, the aircraft floats ~50 m above the DEM.
+    altitudeType: 'geometric',
+    altCorrectionFt: -158,
+    dataSource: 'adsb',
+    trackAttribution: 'ADS-B Exchange',
+    sourceHtml: 'madeira-lpma-approach.html',
+    embeddedTerrain: false,
+    terrainSource: 'Terrarium z12 (~24 m source) · 384 grid · no vertical exaggeration',
+    terrainBox: { lat0: 32.58, lat1: 32.87, lon0: -16.99, lon1: -16.58 },
+    terrainN: 384,
+    // OSM natural=peak nodes, cross-checked against the built DEM.
+    reference: { name: 'PICO RUIVO', lat: 32.7589, lon: -16.9428, elevationFt: 6109 },
+    peaks: [
+      { name: 'PICO RUIVO', lat: 32.7589, lon: -16.9428, elevationFt: 6109 },
+      { name: 'PICO DAS TORRES', lat: 32.7489, lon: -16.9354, elevationFt: 6073 },
+      { name: 'PICO DO ARIEIRO', lat: 32.7356, lon: -16.9287, elevationFt: 5965 },
+      { name: 'PICO GRANDE', lat: 32.7371, lon: -16.9879, elevationFt: 5427 },
+      // Achada do Teixeira (1,592 m) was dropped: it is a plateau shoulder rather
+      // than a distinct summit, and the DEM finds higher ground within 700 m of it
+      // (reads 5.5% high). The four above all verify inside 3%.
+    ],
+    // Absolute seconds-of-day (Z), re-timed against the real track: t0 = 26403
+    // (07:20:03Z), first on-ground sample 26876 (07:27:56Z).
+    events: [
+      { t: 26403, tag: '07:20:03 Z', msg: 'INBOUND · 20 KM TO RUN, THROUGH 5,000 FT', dur: 16, tone: 'calm' },
+      { t: 26543, tag: '07:22:23 Z', msg: 'DOWN THE SOUTH COAST · PAST THE FIELD ON ITS PILLARS', dur: 16 },
+      { t: 26613, tag: '07:23:33 Z', msg: 'THE TURN · 180 DEGREES BACK TOWARD RUNWAY 05', dur: 16 },
+      { t: 26683, tag: '07:24:43 Z', msg: 'HALFWAY ROUND · POINTING WEST AT 2,100 FT', dur: 14 },
+      { t: 26753, tag: '07:25:53 Z', msg: 'ROLLING OUT TO THE NORTH · 1,500 FT', dur: 14 },
+      { t: 26823, tag: 'FINAL', msg: 'LINED UP ON RUNWAY 05 · 3.6 KM TO GO', dur: 14 },
+      { t: 26876, tag: '07:27:56 Z', msg: 'TOUCHDOWN — RUNWAY 05, FIELD ELEVATION 192 FT', dur: 18, tone: 'calm' },
+    ],
+    phases: [
+      { untilT: 26613, label: 'INBOUND · DOWN THE SOUTH COAST' },
+      { untilT: 26823, label: 'THE CURVED APPROACH · TURNING TO RWY 05' },
+      { untilT: 26876, label: 'FINAL · RWY 05' },
+      { untilT: null, label: 'ON THE GROUND · MADEIRA' },
+    ],
+    scaleMultipliers: [8, 3, 1],
+    camera: 'chase',
+    startAtT: 26403,
+    fieldElevationFt: 192,
+    decorations: {
+      // RWY 05/23, 2,781 m x 45 m — the runway extended on concrete pillars over
+      // the sea. Bearing is the rollout's own measured track (44.4° true).
+      runways: [{ lat: 32.6979, lon: -16.7745, bearing: 44, lengthM: 2781, widthM: 45 }],
+    },
+    notes: [
+      'Scene datum is sea level — the approach is flown over the Atlantic.',
+      'Altitude is broadcast GEOMETRIC (GPS), corrected by −158 ft: on this trace alt_geom is height above the WGS84 ellipsoid, and Madeira sits on a ~+50 m geoid high, so the raw values read ~158 ft above MSL. The correction is derived from the geometric altitude reported at touchdown on the 192 ft runway.',
+      'The full curved approach is real broadcast positions throughout — worst sampling gap 8.8 s, with the touchdown and rollout both captured.',
+      'Rendered with the parametric A320neo model in the neutral stylised livery.',
+    ],
+  },
+
+  // -------------------------------------------------------------- Queenstown
+  // ANZ623 (ZK-OXD) into NZQN, Tue 11 Aug 2026 — southbound down the Wakatipu
+  // basin, then west and around onto RWY 23 with the Remarkables to the south.
+  // COVERAGE IS AIRFRAME/DAY SPECIFIC HERE: of five Air NZ A320 landings sampled
+  // across 9 + 11 Aug, only this one keeps sampling to short final. The other four
+  // lose coverage 118–188 s out, which is unshippable. See docs/HANDOFF.md.
+  {
+    slug: 'queenstown',
+    callsign: 'AIR NZ 623',
+    title: 'The Remarkables Approach into Queenstown',
+    blurb:
+      'An A320 turns down the Wakatipu basin in winter — the Remarkables wall to the south, Ben Cruachan to the north — descending between the ranges to a 1,171 ft runway.',
+    aircraft: {
+      icao: 'A320',
+      model: 'Airbus A320',
+      registration: 'ZK-OXD',
+      operator: 'Air New Zealand',
+      wingspanM: 35.8,
+    },
+    dateISO: '2026-08-11',
+    dateLabel: 'Aug 11 2026',
+    theme: 'alpine',
+    timezone: { label: 'NZST', offsetHours: 12 },
+    origin: { lat: -45.0211, lon: 168.7392 },
+    datum: 1171,
+    // Measured, not assumed (gotcha #7b): geom tracks the glideslope to within
+    // ~20 ft of MSL on final here, unlike Madeira. No datum correction.
+    altitudeType: 'geometric',
+    dataSource: 'adsb',
+    trackAttribution: 'ADS-B Exchange',
+    sourceHtml: 'queenstown-nzqn-approach.html',
+    embeddedTerrain: false,
+    terrainSource: 'Terrarium z12 (~20 m source) · 384 grid · no vertical exaggeration',
+    terrainBox: { lat0: -45.14, lat1: -44.95, lon0: 168.62, lon1: 169.12 },
+    terrainN: 384,
+    // OSM natural=peak nodes, cross-checked against the built DEM. The reference is
+    // the Remarkables summit (OSM calls the node "Single Cone").
+    reference: { name: 'THE REMARKABLES', lat: -45.0715, lon: 168.8078, elevationFt: 7608 },
+    peaks: [
+      { name: 'THE REMARKABLES', lat: -45.0715, lon: 168.8078, elevationFt: 7608 },
+      { name: 'CECIL PEAK', lat: -45.1216, lon: 168.6332, elevationFt: 6490 },
+      { name: 'BEN CRUACHAN', lat: -45.0464, lon: 168.8664, elevationFt: 6217 },
+      { name: 'CROWN PEAK', lat: -44.9502, lon: 168.9199, elevationFt: 5692 },
+      { name: 'BOWEN PEAK', lat: -44.9962, lon: 168.6396, elevationFt: 5351 },
+    ],
+    // Absolute seconds-of-day (Z), re-timed against the real track: t0 = 15902
+    // (04:25:02Z), touchdown 16265 (04:31:05Z).
+    events: [
+      { t: 15902, tag: '04:25:02 Z', msg: 'INBOUND · 26 KM TO RUN, THROUGH 6,800 FT', dur: 16, tone: 'calm' },
+      { t: 15962, tag: '04:26:02 Z', msg: 'TURNING WEST · DOWN TOWARD LAKE WAKATIPU', dur: 15 },
+      { t: 16083, tag: '04:28:03 Z', msg: 'ABEAM BEN CRUACHAN · 6,217 FT TO THE NORTH', dur: 14 },
+      { t: 16142, tag: '04:29:02 Z', msg: 'ESTABLISHED ON FINAL · RUNWAY 23', dur: 15 },
+      { t: 16214, tag: '04:30:14 Z', msg: 'THE REMARKABLES TO THE SOUTH · 7,608 FT', dur: 14 },
+      { t: 16265, tag: '04:31:05 Z', msg: 'TOUCHDOWN — QUEENSTOWN, FIELD ELEVATION 1,171 FT', dur: 18, tone: 'calm' },
+    ],
+    phases: [
+      { untilT: 15962, label: 'INBOUND · SOUTHBOUND LEG' },
+      { untilT: 16142, label: 'TURNING WEST · DESCENDING TO THE LAKE' },
+      { untilT: 16265, label: 'FINAL · RWY 23' },
+      { untilT: null, label: 'ON THE GROUND · QUEENSTOWN' },
+    ],
+    scaleMultipliers: [8, 3, 1],
+    camera: 'chase',
+    startAtT: 15902,
+    fieldElevationFt: 1171,
+    decorations: {
+      // RWY 05/23, 1,891 m x 30 m. Bearing is the measured rollout track (257°
+      // TRUE). NZ magnetic variation is ~23°E, which is why a "23" runway sits at
+      // 257° true — do not "correct" this to 230.
+      runways: [{ lat: -45.0211, lon: 168.7392, bearing: 257, lengthM: 1891, widthM: 30 }],
+    },
+    notes: [
+      'Scene datum is Queenstown field elevation (1,171 ft), so altitudes read against the valley floor.',
+      'Altitude is broadcast GEOMETRIC (GPS) — checked against the glideslope on final and found to be MSL here, so no datum correction is applied.',
+      'The touchdown falls in a 26 s coverage hole. It is interpolated across (inside the 60 s no-bridge rule); the distance covered implies a 99 kt mean, which matches the 136 → 63 kt deceleration at either end. The replay ends at that first on-ground sample — the aircraft is then untracked for 55 minutes.',
+      'Rendered with the parametric A320 model in the neutral stylised livery.',
+    ],
+  },
 ];
