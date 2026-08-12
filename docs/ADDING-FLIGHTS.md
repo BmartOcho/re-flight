@@ -193,6 +193,28 @@ Processing order:
    terrain is rendered — it's the only altitude valid against a DEM (baro and geom
    differed ~302 ft on Denali, enough to bury the aircraft under a ridge). If
    `alt_geom` is absent, use `alt_baro` and plan a QNH correction (step 9 / config).
+
+   ⚠️ **But check `alt_geom`'s datum before you trust it (gotcha #7b).** Some
+   equipment broadcasts height above the **WGS84 ellipsoid (HAE)**, not MSL, and the
+   DEM is MSL. Madeira exposed this: `alt_geom` read ~350 ft while the aircraft sat
+   on a 192 ft runway, because the island sits on a ~+50 m geoid high — all four
+   LPMA arrivals sampled showed the same 158–208 ft bias. Left alone the aircraft
+   floats ~50 m over the terrain and the touchdown check fails by >150 ft. Innsbruck
+   showed no such bias, so **this is per-trace, not per-region — always measure it**:
+
+   ```
+   offset = (alt_geom reported while ON THE GROUND at the field) - published field elevation
+   ```
+
+   Put `-offset` in the flight's `altCorrectionFt` (ingest applies it to every
+   sample and the UI discloses it), and write the ground rows in the *pre-correction*
+   frame so they land exactly on field elevation.
+
+   Also note `alt_geom` is quantised to **25 ft**. Through the flare Madeira's trace
+   stepped 350 → 325 → 350, and after the offset that 25 ft dip put the aircraft
+   *below the runway it was landing on* — 3 samples under the mesh. An aircraft over
+   the airport cannot be below field elevation: floor the last ~1.5 km at the field
+   (same class of fix as gotcha #6) and disclose it.
 5. **Map `"ground"` → field elevation (gotcha #6).** Ground rows are **not** altitude
    0; set them to the field elevation (LOWI = 1907 ft) or the aircraft dives
    underground at touchdown.

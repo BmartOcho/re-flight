@@ -242,11 +242,27 @@ Print a table per flight. A flight that fails does not ship.
   itself falls in a 34 s terrain-shadow hole. See `docs/ADDING-FLIGHTS.md` §Coverage for
   the confirmed numbers — it is now the worked example for deep-valley fields. Note the
   arrival was a modest 13° turn onto final, not the dramatic curved RNP assumed here.
-- **Queenstown (NZQN)** — Remarkables approach.
-- **Aspen (KASE)** — 6.6° LOC/DME-E, steepest airline approach in the US.
-- **Madeira (LPMA)** — legendary crosswind approach on a stilted runway.
-- **Barra (EGPR), Scotland** — the only scheduled airline service landing **on a beach**, tide
-  dependent. Charming, unique, Twin Otter.
+- **Queenstown (NZQN)** — Remarkables approach. **VIABLE, NOT YET BUILT — and it is
+  airframe/day specific.** Of five Air NZ A320 landings sampled (11 + 9 Aug 2026), only
+  **ZK-OXD (c820f4) on 2026-08-11**, touchdown 04:31:05Z, has usable coverage: 26 s from
+  last airborne (1.51 km out, 1125 ft) to the first ground row, 15 s worst gap over the
+  last 10 min, alt_geom on 111/111. The other four die 118–188 s out — no-ship. Check the
+  tail of the trace before committing to a date; it is a mountain basin like LOWI.
+- **Aspen (KASE)** — 6.6° LOC/DME-E, steepest airline approach in the US. **Not yet
+  assessed.** A live poll found no traffic below 20,000 ft within 30 NM; discovery needs
+  the archive-side route (SkyWest CRJ-700 registrations → adsbdb → globe_history).
+- ~~**Madeira (LPMA)**~~ — **SHIPPED.** TAP1685 (A320neo CS-TVA), 9 Aug 2026, the curved
+  visual approach to RWY 05. Coverage is the best of any flight in the roster: 8.8 s worst
+  gap, touchdown *and* rollout both captured. It is also the flight that exposed the
+  ellipsoidal-`alt_geom` trap — see `docs/ADDING-FLIGHTS.md` gotcha #7b.
+- ~~**Barra (EGPR), Scotland**~~ — **NO-SHIP. Do not attempt; the data does not exist.**
+  Loganair's Twin Otters are archived (G-HIAL 406df4, G-SGTS 406df5) and the traces reach
+  the Hebrides fine, but **the field itself is invisible to the receiver network**. G-SGTS
+  (11 Aug 2026): coverage dies 10.7 km out, one isolated sample at 2.98 km / 750 ft, then a
+  **1,837 s** hole spanning the landing, ground time and departure. G-HIAL (8 Aug 2026) is
+  worse — a **3,175 s** hole from 13.8 km out. Two airframes, two dates, same result. The
+  touchdown is simply not broadcast-covered, so a beach landing here could only be
+  fabricated. This is the Paro case (§3) in the North Atlantic.
 - **Courchevel (LFLJ)** — 18.6% gradient altiport.
 - **UA328** — Denver 777 engine failure, Feb 20 2021, tight return loop.
 - **SPAR19** — Pelosi's Taiwan flight, Aug 2 2022. Most-tracked flight ever (~708k concurrent).

@@ -336,4 +336,89 @@ export const FLIGHTS: AuthoredFlight[] = [
       'Rendered with the parametric A320 model in the neutral stylised livery.',
     ],
   },
+
+  // ----------------------------------------------------------------- Madeira
+  // TAP1685 (CS-TVA) into LPMA, Sun 9 Aug 2026 — the curved visual approach to
+  // RWY 05: down the south coast past the field, then a continuous 189° right
+  // turn back onto the runway. Coverage here is excellent: 8.8 s worst gap and
+  // the touchdown and rollout are both fully captured, unlike Innsbruck.
+  {
+    slug: 'madeira',
+    callsign: 'TAP 1685',
+    title: 'The Curved Approach into Madeira',
+    blurb:
+      'An A320neo runs down Madeira’s south coast, then turns 180° back over the Atlantic to line up on a runway built out on pillars above the sea.',
+    aircraft: {
+      icao: 'A20N',
+      model: 'Airbus A320neo',
+      registration: 'CS-TVA',
+      operator: 'TAP Air Portugal',
+      wingspanM: 35.8,
+    },
+    dateISO: '2026-08-09',
+    dateLabel: 'Aug 9 2026',
+    theme: 'day',
+    timezone: { label: 'WEST', offsetHours: 1 },
+    origin: { lat: 32.6979, lon: -16.7745 },
+    // Sea level: the whole approach is flown over the Atlantic, so altitudes read
+    // above the water rather than against a valley floor.
+    datum: 0,
+    // Broadcast geometric altitude — but see altCorrectionFt. On this trace
+    // alt_geom is height above the WGS84 ELLIPSOID, not MSL: it reads ~350 ft
+    // while the aircraft sits on a 192 ft runway. Madeira has a ~+50 m geoid
+    // separation, and all four LPMA arrivals sampled showed the same 158–208 ft
+    // bias. Uncorrected, the aircraft floats ~50 m above the DEM.
+    altitudeType: 'geometric',
+    altCorrectionFt: -158,
+    dataSource: 'adsb',
+    trackAttribution: 'ADS-B Exchange',
+    sourceHtml: 'madeira-lpma-approach.html',
+    embeddedTerrain: false,
+    terrainSource: 'Terrarium z12 (~24 m source) · 384 grid · no vertical exaggeration',
+    terrainBox: { lat0: 32.58, lat1: 32.87, lon0: -16.99, lon1: -16.58 },
+    terrainN: 384,
+    // OSM natural=peak nodes, cross-checked against the built DEM.
+    reference: { name: 'PICO RUIVO', lat: 32.7589, lon: -16.9428, elevationFt: 6109 },
+    peaks: [
+      { name: 'PICO RUIVO', lat: 32.7589, lon: -16.9428, elevationFt: 6109 },
+      { name: 'PICO DAS TORRES', lat: 32.7489, lon: -16.9354, elevationFt: 6073 },
+      { name: 'PICO DO ARIEIRO', lat: 32.7356, lon: -16.9287, elevationFt: 5965 },
+      { name: 'PICO GRANDE', lat: 32.7371, lon: -16.9879, elevationFt: 5427 },
+      // Achada do Teixeira (1,592 m) was dropped: it is a plateau shoulder rather
+      // than a distinct summit, and the DEM finds higher ground within 700 m of it
+      // (reads 5.5% high). The four above all verify inside 3%.
+    ],
+    // Absolute seconds-of-day (Z), re-timed against the real track: t0 = 26403
+    // (07:20:03Z), first on-ground sample 26876 (07:27:56Z).
+    events: [
+      { t: 26403, tag: '07:20:03 Z', msg: 'INBOUND · 20 KM TO RUN, THROUGH 5,000 FT', dur: 16, tone: 'calm' },
+      { t: 26543, tag: '07:22:23 Z', msg: 'DOWN THE SOUTH COAST · PAST THE FIELD ON ITS PILLARS', dur: 16 },
+      { t: 26613, tag: '07:23:33 Z', msg: 'THE TURN · 180 DEGREES BACK TOWARD RUNWAY 05', dur: 16 },
+      { t: 26683, tag: '07:24:43 Z', msg: 'HALFWAY ROUND · POINTING WEST AT 2,100 FT', dur: 14 },
+      { t: 26753, tag: '07:25:53 Z', msg: 'ROLLING OUT TO THE NORTH · 1,500 FT', dur: 14 },
+      { t: 26823, tag: 'FINAL', msg: 'LINED UP ON RUNWAY 05 · 3.6 KM TO GO', dur: 14 },
+      { t: 26876, tag: '07:27:56 Z', msg: 'TOUCHDOWN — RUNWAY 05, FIELD ELEVATION 192 FT', dur: 18, tone: 'calm' },
+    ],
+    phases: [
+      { untilT: 26613, label: 'INBOUND · DOWN THE SOUTH COAST' },
+      { untilT: 26823, label: 'THE CURVED APPROACH · TURNING TO RWY 05' },
+      { untilT: 26876, label: 'FINAL · RWY 05' },
+      { untilT: null, label: 'ON THE GROUND · MADEIRA' },
+    ],
+    scaleMultipliers: [8, 3, 1],
+    camera: 'chase',
+    startAtT: 26403,
+    fieldElevationFt: 192,
+    decorations: {
+      // RWY 05/23, 2,781 m x 45 m — the runway extended on concrete pillars over
+      // the sea. Bearing is the rollout's own measured track (44.4° true).
+      runways: [{ lat: 32.6979, lon: -16.7745, bearing: 44, lengthM: 2781, widthM: 45 }],
+    },
+    notes: [
+      'Scene datum is sea level — the approach is flown over the Atlantic.',
+      'Altitude is broadcast GEOMETRIC (GPS), corrected by −158 ft: on this trace alt_geom is height above the WGS84 ellipsoid, and Madeira sits on a ~+50 m geoid high, so the raw values read ~158 ft above MSL. The correction is derived from the geometric altitude reported at touchdown on the 192 ft runway.',
+      'The full curved approach is real broadcast positions throughout — worst sampling gap 8.8 s, with the touchdown and rollout both captured.',
+      'Rendered with the parametric A320neo model in the neutral stylised livery.',
+    ],
+  },
 ];
