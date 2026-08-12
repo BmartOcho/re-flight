@@ -94,6 +94,17 @@ machine that can reach `tiles.maps.eox.at` — it bakes `imagery.jpg` next to
 procedural palette covers any flight without it. Sentinel-2 cloudless is
 CC BY-NC-SA 4.0 (attribution shows in the disclosure footer).
 
+> **If it reports `fetch failed` while `curl` to the same tile URL works**, you are
+> probably on a machine with a broken IPv6 path. `tiles.maps.eox.at` is dual-stack
+> (the DEM host, `s3.amazonaws.com`, is IPv4-only, which is why `npm run terrain`
+> is unaffected); when the AAAA record resolves but has no route, Node's
+> happy-eyeballs can surface the dead IPv6 attempt as `ETIMEDOUT` rather than
+> falling back, and roughly half the tiles die. Confirm with
+> `curl -6 -sS -o /dev/null https://tiles.maps.eox.at/`, then re-run as
+> `NODE_OPTIONS=--no-network-family-autoselection npm run imagery`. The script
+> prints this hint itself on a socket-level failure. It is deliberately not worked
+> around in code — pinning the address family would break IPv6-only networks.
+
 ---
 
 ## 3. Fetch the historical trace from ADS-B Exchange

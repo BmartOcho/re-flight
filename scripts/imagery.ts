@@ -21,9 +21,54 @@ const OUT_DIR = join(ROOT, 'public', 'flights');
 const CACHE = join(ROOT, 'scripts', '.tilecache', 'eox');
 const PX = 1536;
 
+// Socket-level failures, as opposed to an HTTP status. `fetch` collapses these
+// into an opaque "TypeError: fetch failed", which reads like the host is
+// blocking us when it usually isn't — see the hint below.
+const TRANSPORT_CODES = new Set([
+  'ETIMEDOUT',
+  'ECONNRESET',
+  'ECONNREFUSED',
+  'ENETUNREACH',
+  'EHOSTUNREACH',
+  'EAI_AGAIN',
+  'UND_ERR_CONNECT_TIMEOUT',
+]);
+
+/** Dig the real socket error code out of fetch's nested `cause` chain. */
+function causeCode(e: unknown): string | null {
+  let c = e as { code?: unknown; cause?: unknown } | undefined;
+  for (let i = 0; i < 5 && c; i++) {
+    if (typeof c.code === 'string') return c.code;
+    c = c.cause as typeof c;
+  }
+  return null;
+}
+
+// tiles.maps.eox.at is dual-stack. If a machine resolves its AAAA record but has
+// no working IPv6 route to it, Node's happy-eyeballs can surface the dead IPv6
+// attempt as ETIMEDOUT instead of falling back to IPv4 — roughly half of tile
+// requests die while `curl` to the same URL succeeds every time. That looks
+// exactly like "the host is unreachable", so say so explicitly rather than
+// letting the next person spend an hour on it. Deliberately NOT worked around in
+// code: pinning the family would break genuinely IPv6-only networks.
+function transportHint(): void {
+  console.log(`
+  ── note ───────────────────────────────────────────────────────────────────
+  That was a socket-level failure, not a refusal from the host. If \`curl\` can
+  reach the tile host but this script can't, suspect a broken IPv6 path:
+
+      curl -6 -sS -o /dev/null https://tiles.maps.eox.at/  # fails => no v6 route
+
+  If so, re-run with happy-eyeballs disabled so Node uses IPv4:
+
+      NODE_OPTIONS=--no-network-family-autoselection npm run imagery
+  ───────────────────────────────────────────────────────────────────────────`);
+}
+
 async function main() {
   const { FLIGHTS } = await import('../data/authored');
   let wrote = 0;
+  let sawTransportFailure = false;
   for (const f of FLIGHTS) {
     const metaPath = join(OUT_DIR, f.slug, 'meta.json');
     if (!existsSync(metaPath)) {
@@ -63,10 +108,14 @@ async function main() {
       console.log(`  ${f.slug}: imagery.jpg ${(img.jpeg.length / 1024).toFixed(0)} KB (z${img.z}, ${PX}px)`);
       wrote++;
     } catch (e) {
-      console.log(`  ${f.slug}: imagery unavailable (${e instanceof Error ? e.message : e}) — keeping procedural palette`);
+      const code = causeCode(e);
+      if (code && TRANSPORT_CODES.has(code)) sawTransportFailure = true;
+      const detail = `${e instanceof Error ? e.message : e}${code ? ` · ${code}` : ''}`;
+      console.log(`  ${f.slug}: imagery unavailable (${detail}) — keeping procedural palette`);
     }
   }
-  console.log(wrote ? `Done — ${wrote} flight(s) textured.` : 'Done — no imagery written (host unreachable?). Procedural palette remains.');
+  console.log(wrote ? `Done — ${wrote} flight(s) textured.` : 'Done — no imagery written. Procedural palette remains.');
+  if (sawTransportFailure) transportHint();
 }
 
 main().catch((e) => {
