@@ -10,13 +10,14 @@ design decision protects:
 
 > **Every point is the aircraft's actual broadcast position.**
 
-Three flights ship today:
+Four flights ship today:
 
 | Flight | Aircraft | Story |
 |---|---|---|
 | **N2YV — Over the Summit of Denali** | DHC-3 Turbo Otter | A bushplane 660 m from the highest peak in North America, at 20,432 ft, over a real DEM of the Alaska Range. |
 | **American 3229 — The Teton Approach** | Airbus A319 | JFK→Jackson Hole, threading the valley 5,408 ft below the Grand Teton to a mountain runway. |
 | **Alaska 1282 — The Door-Plug Flight** | Boeing 737 MAX 9 | Nineteen minutes over Portland at night; door plug gone at 16,000 ft, emergency return, all 177 survive. |
+| **Austrian 676 — The Inn Valley Approach** | Airbus A320 | Warsaw→Innsbruck, down the Inn valley under the Karwendel wall to a 1,907 ft runway ringed by Alps. |
 
 The three started as single-file HTML prototypes (kept in `reference/prototypes/`
 for provenance). This project unifies them into one config-driven renderer, upgrades
@@ -106,7 +107,7 @@ correctly-proportioned low-poly model from that spec. A C172 renders as a strutt
 high-wing single, a King Air as a T-tail turboprop twin, an MD-11 with its fin-root #2
 engine. Unknown designators fall back family → class, and the UI **discloses** when the
 model is a closest-match guess. Liveries stay deliberately neutral/stylised (also
-disclosed); the three curated flights keep their hand-built liveried models. Uploads take
+disclosed); the three original flights keep their hand-built liveried models. Uploads take
 any registry type. `scripts/check-aircraft.ts` numerically gates the library (bounding box
 vs published span/length for every type), and the unlinked `/hangar` page spins any type
 for eyeballing.
@@ -161,7 +162,8 @@ attitude and a stylised model.
 The curated tier needs real ADS-B data, which must be fetched where ADS-B Exchange is
 reachable (not every sandbox allows it). See **`docs/ADDING-FLIGHTS.md`** for the full
 runbook (discover → confirm type → fetch trace → process per gotchas 1-7 → build
-terrain → verify), and `data/candidates/` for drafted-but-not-yet-fetched flights.
+terrain → verify) — Innsbruck is the worked example, start to finish. The shortlist of
+next candidates lives in `docs/HANDOFF.md` §"Strong candidates".
 
 ## Deploy
 

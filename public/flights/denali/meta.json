@@ -159,7 +159,9 @@
     "lon0": -151.29,
     "lon1": -150.13,
     "n": 288,
-    "source": "Terrarium z12 (~17 m source) · 288 grid · no vertical exaggeration"
+    "source": "Terrarium z12 (~17 m source) · 288 grid · no vertical exaggeration",
+    "imageryUrl": "/flights/denali/imagery.jpg",
+    "imagerySource": "Sentinel-2 cloudless by EOX (CC BY-NC-SA 4.0) · z11"
   },
   "track": {
     "t0": 2,

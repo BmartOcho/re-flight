@@ -94,6 +94,17 @@ machine that can reach `tiles.maps.eox.at` — it bakes `imagery.jpg` next to
 procedural palette covers any flight without it. Sentinel-2 cloudless is
 CC BY-NC-SA 4.0 (attribution shows in the disclosure footer).
 
+> **If it reports `fetch failed` while `curl` to the same tile URL works**, you are
+> probably on a machine with a broken IPv6 path. `tiles.maps.eox.at` is dual-stack
+> (the DEM host, `s3.amazonaws.com`, is IPv4-only, which is why `npm run terrain`
+> is unaffected); when the AAAA record resolves but has no route, Node's
+> happy-eyeballs can surface the dead IPv6 attempt as `ETIMEDOUT` rather than
+> falling back, and roughly half the tiles die. Confirm with
+> `curl -6 -sS -o /dev/null https://tiles.maps.eox.at/`, then re-run as
+> `NODE_OPTIONS=--no-network-family-autoselection npm run imagery`. The script
+> prints this hint itself on a socket-level failure. It is deliberately not worked
+> around in code — pinning the address family would break IPv6-only networks.
+
 ---
 
 ## 3. Fetch the historical trace from ADS-B Exchange
@@ -268,7 +279,10 @@ printf '<!doctype html><meta charset="utf-8"><title>innsbruck source</title>\n<s
 
 ## 5. Author / finalize the flight config
 
-For Innsbruck the draft already exists at **`data/candidates/innsbruck.ts`**. Finish it:
+Innsbruck shipped this way — see the `innsbruck` entry in **`data/authored.ts`** for a
+finished example of every field below. (It started as a draft under `data/candidates/`;
+that directory is empty now, but the same shape works for staging a new flight whose
+track you can't fetch yet.) What to fill in:
 
 - Set `callsign`, `aircraft.registration`, `aircraft.operator`, `aircraft.wingspanM`
   from steps 2–3, and `aircraft.icao` from the mapping table.
@@ -277,17 +291,30 @@ For Innsbruck the draft already exists at **`data/candidates/innsbruck.ts`**. Fi
 - Set `altitudeType`: `'geometric'` if you used `alt_geom`; else `'baro'` **and**
   add `altCorrectionFt = FIELD_FT - baroTouchdownAlt` (ingest adds it to every
   sample so touchdown == field elevation — gotcha #7; it's disclosed in the UI).
-- **Set the absolute event/phase times.** The draft expresses them as `T0 + offset`
-  with `T0 = 0`. Set `T0` to the real track's `t0` (seconds-of-day Z), then
-  **re-time every beat against the actual track** — confirm the aircraft really is
-  abeam each named peak / on final at that moment. The relative spacing is
-  illustrative only.
-- Confirm the landing runway (08 vs 26) and touchdown heading from the track; fix
-  the `decorations.runways` bearing and the "RUNWAY 26" copy if needed.
+- **Set the absolute event/phase times.** A draft usually expresses them as
+  `T0 + offset` with `T0 = 0`. Set `T0` to the real track's `t0` (seconds-of-day Z),
+  then **re-time every beat against the actual track** — confirm the aircraft really
+  is abeam each named peak / on final at that moment. The relative spacing is
+  illustrative only. (Innsbruck's drafted 10-minute timeline became a 5m48s one; the
+  beats were re-derived from closest-approach times, not rescaled.)
+- Confirm the landing runway and touchdown heading from the track; fix the
+  `decorations.runways` bearing and any runway copy to match.
+- **Verify every peak coordinate against the built DEM before shipping.** Drafted
+  coordinates are guesses. Innsbruck's were approximate and three were badly wrong —
+  Grosser Bettelwurf sat ~6 km off and read 19% low. Pull them from OSM
+  `natural=peak` nodes (name + `ele`) and re-probe the DEM; verify's 3% gate only
+  checks the single `reference` peak, so the rest are on you. Pick a `reference`
+  whose DEM match is tight *and* that the aircraft actually passes.
+- **Sanity-check decorations against the real world too.** Innsbruck's drafted river
+  polyline ran 26 m from the aerodrome reference point — it drew the Inn straight
+  down the runway. On a day scene the satellite drape already shows real water;
+  drop a decoration rather than re-guess it.
 
 Then **move the finished object into `data/authored.ts`'s `FLIGHTS` array** — the
-build scripts only read `data/authored.ts` (the `data/candidates/` file is never
-ingested). Keep `embeddedTerrain: false` and a `terrainBox`/`terrainN` (384).
+build scripts only read `data/authored.ts`. Keep `embeddedTerrain: false` and a
+`terrainBox`/`terrainN` (384). If the type is new to the roster, add a groundspeed
+band for it in `scripts/verify.ts` (`GS_BAND`) — the unknown-type fallback is a very
+loose 0–700 kt.
 
 ---
 
@@ -353,14 +380,31 @@ out). **Verify coverage before building a flight**, using the step-1 live query 
 by confirming the `trace_full` actually contains the low-altitude approach segment,
 not just the cruise.
 
-**LOWI specifically:** the Inn valley sits in dense European coverage, so en-route
-and mid-valley tracking are reliable — this is the best untested scenic candidate on
-the roster. But it is a deep Alpine valley: expect the **lowest, terrain-shadowed
-part of the final approach and rollout to be patchy** (line-of-sight to ground
-receivers is blocked by the valley walls). Inspect the tail of the trace; if the last
-turn onto final or the touchdown itself has a >60 s hole, honour gotcha #2 (show the
-gap / trim) rather than splining through the valley — and let the touchdown-vs-field
-verify check tell you whether the last real sample is close enough to land honestly.
+**LOWI — CONFIRMED, this is what it actually looked like.** The prediction here was
+right, so it is now recorded as fact for the next deep-valley field. On AUA676
+(OE-LBP, 14 Feb 2026) the Inn valley tracked beautifully down to short final —
+~6 s sampling, no gap over 20 s from 27 km out — and then:
+
+- The **last airborne sample is 218 ft above the field, ~1 km out.** The next sample
+  is 34 s later, already on the ground at 31 kt. **The touchdown itself is not
+  captured** — the valley walls shadow the field exactly as expected.
+- 34 s is inside the 60 s no-bridge rule, so it is legal to resample across. Check
+  the physics before you do: the implied mean was ~80 kt across the gap, consistent
+  with a rollout decelerating 135 → 31 kt. If the arithmetic had implied something
+  impossible, that would be the signal to trim instead.
+- **Stop at the first on-ground sample.** The next burst (another 34 s later) is the
+  aircraft turning off the runway, and the uneven spacing makes Catmull-Rom whip the
+  path through a **35 °/s hook** — an artifact, not a manoeuvre. It is visible in
+  `max |turn|` before it ever reaches verify's bank gate, so check that number on
+  the processed track.
+- Watch for Catmull-Rom **overshoot at the descent→flare corner**: clamp interpolated
+  altitude to the bracket of its two real samples, or the spline dips below the
+  runway and trips "samples below terrain".
+- Touchdown-vs-field landed at **Δ3 ft** on a 50 ft gate, which is how you know the
+  last real sample was close enough to land honestly.
+
+The general rule stands: inspect the tail of the trace, and never spline through a
+>60 s hole in a valley.
 
 ---
 

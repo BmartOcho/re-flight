@@ -204,7 +204,9 @@
     "lon0": -111,
     "lon1": -109.9,
     "n": 384,
-    "source": "Terrarium z12 (~28 m source) · 384 grid · no vertical exaggeration"
+    "source": "Terrarium z12 (~28 m source) · 384 grid · no vertical exaggeration",
+    "imageryUrl": "/flights/jackson-hole/imagery.jpg",
+    "imagerySource": "Sentinel-2 cloudless by EOX (CC BY-NC-SA 4.0) · z12"
   },
   "track": {
     "t0": 66923,
