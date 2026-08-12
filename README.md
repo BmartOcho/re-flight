@@ -10,7 +10,7 @@ design decision protects:
 
 > **Every point is the aircraft's actual broadcast position.**
 
-Five flights ship today:
+Six flights ship today:
 
 | Flight | Aircraft | Story |
 |---|---|---|
@@ -19,6 +19,7 @@ Five flights ship today:
 | **Alaska 1282 — The Door-Plug Flight** | Boeing 737 MAX 9 | Nineteen minutes over Portland at night; door plug gone at 16,000 ft, emergency return, all 177 survive. |
 | **Austrian 676 — The Inn Valley Approach** | Airbus A320 | Warsaw→Innsbruck, down the Inn valley under the Karwendel wall to a 1,907 ft runway ringed by Alps. |
 | **TAP 1685 — The Curved Approach into Madeira** | Airbus A320neo | Down Madeira's south coast, then a 189° turn back over the Atlantic onto a runway built out on pillars. |
+| **Air NZ 623 — The Remarkables Approach** | Airbus A320 | Down the Wakatipu basin in winter, between the ranges, to a 1,171 ft runway under the Remarkables. |
 
 The three started as single-file HTML prototypes (kept in `reference/prototypes/`
 for provenance). This project unifies them into one config-driven renderer, upgrades

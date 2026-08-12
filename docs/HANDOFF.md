@@ -242,12 +242,13 @@ Print a table per flight. A flight that fails does not ship.
   itself falls in a 34 s terrain-shadow hole. See `docs/ADDING-FLIGHTS.md` §Coverage for
   the confirmed numbers — it is now the worked example for deep-valley fields. Note the
   arrival was a modest 13° turn onto final, not the dramatic curved RNP assumed here.
-- **Queenstown (NZQN)** — Remarkables approach. **VIABLE, NOT YET BUILT — and it is
-  airframe/day specific.** Of five Air NZ A320 landings sampled (11 + 9 Aug 2026), only
-  **ZK-OXD (c820f4) on 2026-08-11**, touchdown 04:31:05Z, has usable coverage: 26 s from
-  last airborne (1.51 km out, 1125 ft) to the first ground row, 15 s worst gap over the
-  last 10 min, alt_geom on 111/111. The other four die 118–188 s out — no-ship. Check the
-  tail of the trace before committing to a date; it is a mountain basin like LOWI.
+- ~~**Queenstown (NZQN)**~~ — **SHIPPED.** ANZ623 (A320 ZK-OXD), 11 Aug 2026, touchdown
+  04:31:05Z. **Worth remembering *how* it was found: coverage here is airframe/day
+  specific.** Of five Air NZ A320 landings sampled across 9 + 11 Aug, only this one keeps
+  sampling to short final (26 s touchdown hole, 15 s worst gap over the last 10 min); the
+  other four die 118–188 s out and are unshippable. At a mountain-basin field, sweep
+  several airframes and dates and pick the one whose trace survives — do not assume a bad
+  trace means a bad airport.
 - **Aspen (KASE)** — 6.6° LOC/DME-E, steepest airline approach in the US. **Not yet
   assessed.** A live poll found no traffic below 20,000 ft within 30 NM; discovery needs
   the archive-side route (SkyWest CRJ-700 registrations → adsbdb → globe_history).
