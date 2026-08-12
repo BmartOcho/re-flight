@@ -237,8 +237,11 @@ Print a table per flight. A flight that fails does not ship.
    aircraft's own repeated center fixes, or use NHC best-track and cite it.
 
 ### Strong candidates — VERIFY COVERAGE BEFORE BUILDING
-- **Innsbruck (LOWI)** — curved RNP through the Inn valley, dense European coverage. Best
-  untested scenic candidate.
+- ~~**Innsbruck (LOWI)**~~ — **SHIPPED.** AUA676 (A320 OE-LBP), Warsaw→Innsbruck,
+  14 Feb 2026. Coverage was as predicted: excellent down the valley, and the touchdown
+  itself falls in a 34 s terrain-shadow hole. See `docs/ADDING-FLIGHTS.md` §Coverage for
+  the confirmed numbers — it is now the worked example for deep-valley fields. Note the
+  arrival was a modest 13° turn onto final, not the dramatic curved RNP assumed here.
 - **Queenstown (NZQN)** — Remarkables approach.
 - **Aspen (KASE)** — 6.6° LOC/DME-E, steepest airline approach in the US.
 - **Madeira (LPMA)** — legendary crosswind approach on a stilted runway.
